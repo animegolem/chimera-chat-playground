@@ -27,13 +27,14 @@
     },
     
     /* Firefox extension APIs */
-    "types": ["web-ext-types", "node"],
+    "types": ["node"],
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx",
-    "vite.config.ts"
+    "src/**/*.tsx", 
+    "vite.config.ts",
+    "node_modules/web-ext-types/global/index.d.ts"
   ],
   "exclude": [
     "node_modules",

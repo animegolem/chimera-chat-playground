@@ -54,11 +54,15 @@ function ModelPill({ model, onToggle, onRightClick }: ModelPillProps) {
           ? 'bg-opacity-30 border'
           : 'bg-secondary text-gruv-medium border border-primary'
       }`}
-      style={model.active ? {
-        backgroundColor: model.color + '30',
-        borderColor: model.color,
-        color: model.color
-      } : {}}
+      style={
+        model.active
+          ? {
+              backgroundColor: model.color + '30',
+              borderColor: model.color,
+              color: model.color,
+            }
+          : {}
+      }
       title={`${model.name} (${model.type})`}
     >
       <span>{model.emoji}</span>

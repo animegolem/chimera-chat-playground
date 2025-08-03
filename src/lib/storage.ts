@@ -13,7 +13,9 @@ interface StorageData {
 
 class Storage {
   // Generic get/set methods
-  async get<K extends keyof StorageData>(key: K): Promise<StorageData[K] | null> {
+  async get<K extends keyof StorageData>(
+    key: K
+  ): Promise<StorageData[K] | null> {
     try {
       const result = await browser.storage.local.get(key);
       return result[key] || null;
@@ -23,7 +25,10 @@ class Storage {
     }
   }
 
-  async set<K extends keyof StorageData>(key: K, value: StorageData[K]): Promise<void> {
+  async set<K extends keyof StorageData>(
+    key: K,
+    value: StorageData[K]
+  ): Promise<void> {
     try {
       await browser.storage.local.set({ [key]: value });
     } catch (error) {
@@ -58,20 +63,20 @@ class Storage {
 
   async saveSession(session: ChatSession): Promise<void> {
     const sessions = await this.getSessions();
-    const existingIndex = sessions.findIndex(s => s.id === session.id);
-    
+    const existingIndex = sessions.findIndex((s) => s.id === session.id);
+
     if (existingIndex >= 0) {
       sessions[existingIndex] = session;
     } else {
       sessions.push(session);
     }
-    
+
     await this.set(STORAGE_KEYS.SESSIONS, sessions);
   }
 
   async deleteSession(sessionId: string): Promise<void> {
     const sessions = await this.getSessions();
-    const filtered = sessions.filter(s => s.id !== sessionId);
+    const filtered = sessions.filter((s) => s.id !== sessionId);
     await this.set(STORAGE_KEYS.SESSIONS, filtered);
   }
 
@@ -84,10 +89,13 @@ class Storage {
     await this.set(STORAGE_KEYS.MODELS, models);
   }
 
-  async updateModel(modelId: string, updates: Partial<ModelInfo>): Promise<void> {
+  async updateModel(
+    modelId: string,
+    updates: Partial<ModelInfo>
+  ): Promise<void> {
     const models = await this.getModels();
-    const modelIndex = models.findIndex(m => m.id === modelId);
-    
+    const modelIndex = models.findIndex((m) => m.id === modelId);
+
     if (modelIndex >= 0) {
       models[modelIndex] = { ...models[modelIndex], ...updates };
       await this.saveModels(models);
@@ -102,13 +110,13 @@ class Storage {
   }
 
   async setApiKey(modelId: string, apiKey: string): Promise<void> {
-    const apiKeys = await this.get(STORAGE_KEYS.API_KEYS) || {};
+    const apiKeys = (await this.get(STORAGE_KEYS.API_KEYS)) || {};
     apiKeys[modelId] = apiKey;
     await this.set(STORAGE_KEYS.API_KEYS, apiKeys);
   }
 
   async removeApiKey(modelId: string): Promise<void> {
-    const apiKeys = await this.get(STORAGE_KEYS.API_KEYS) || {};
+    const apiKeys = (await this.get(STORAGE_KEYS.API_KEYS)) || {};
     delete apiKeys[modelId];
     await this.set(STORAGE_KEYS.API_KEYS, apiKeys);
   }

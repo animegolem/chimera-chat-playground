@@ -13,20 +13,20 @@ document.addEventListener('keyup', handleSelectionChange);
 // Message handler for communication with sidebar/background
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Content script received message:', message.type);
-  
+
   switch (message.type) {
     case 'GET_PAGE_CONTENT':
       handleGetPageContent(sendResponse);
       return true; // Async response
-      
+
     case 'GET_SELECTION':
       handleGetSelection(sendResponse);
       return true; // Async response
-      
+
     case 'HIGHLIGHT_TEXT':
       handleHighlightText(message.text, sendResponse);
       return true; // Async response
-      
+
     default:
       console.warn('Unknown message type:', message.type);
   }
@@ -37,34 +37,38 @@ function handleSelectionChange() {
   if (selectionTimeout) {
     clearTimeout(selectionTimeout);
   }
-  
+
   selectionTimeout = window.setTimeout(() => {
     const selection = window.getSelection();
     const selectedText = selection?.toString().trim() || '';
-    
+
     if (selectedText && selectedText !== lastSelection) {
       lastSelection = selectedText;
-      
+
       // Send selection to sidebar
-      browser.runtime.sendMessage({
-        type: 'TEXT_SELECTED',
-        text: selectedText,
-        url: window.location.href,
-        title: document.title,
-        timestamp: Date.now()
-      }).catch(() => {
-        // Sidebar might not be open, ignore error
-      });
-      
+      browser.runtime
+        .sendMessage({
+          type: 'TEXT_SELECTED',
+          text: selectedText,
+          url: window.location.href,
+          title: document.title,
+          timestamp: Date.now(),
+        })
+        .catch(() => {
+          // Sidebar might not be open, ignore error
+        });
+
       console.log('Text selected:', selectedText.substring(0, 50) + '...');
     } else if (!selectedText && lastSelection) {
       // Selection cleared
       lastSelection = '';
-      browser.runtime.sendMessage({
-        type: 'TEXT_SELECTION_CLEARED'
-      }).catch(() => {
-        // Sidebar might not be open, ignore error
-      });
+      browser.runtime
+        .sendMessage({
+          type: 'TEXT_SELECTION_CLEARED',
+        })
+        .catch(() => {
+          // Sidebar might not be open, ignore error
+        });
     }
   }, 300);
 }
@@ -73,7 +77,7 @@ function handleGetPageContent(sendResponse: Function) {
   try {
     // Extract main content, avoiding navigation and ads
     const content = extractMainContent();
-    
+
     sendResponse({
       success: true,
       content: {
@@ -81,13 +85,13 @@ function handleGetPageContent(sendResponse: Function) {
         title: document.title,
         url: window.location.href,
         domain: window.location.hostname,
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     });
   } catch (error) {
     sendResponse({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }
@@ -95,15 +99,15 @@ function handleGetPageContent(sendResponse: Function) {
 function handleGetSelection(sendResponse: Function) {
   const selection = window.getSelection();
   const selectedText = selection?.toString().trim() || '';
-  
+
   sendResponse({
     success: true,
     selection: {
       text: selectedText,
       url: window.location.href,
       title: document.title,
-      timestamp: Date.now()
-    }
+      timestamp: Date.now(),
+    },
   });
 }
 
@@ -115,27 +119,27 @@ function handleHighlightText(searchText: string, sendResponse: Function) {
       NodeFilter.SHOW_TEXT,
       null
     );
-    
+
     const textNodes = [];
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
       if (node.textContent?.includes(searchText)) {
         textNodes.push(node);
       }
     }
-    
+
     // Highlight found text nodes
-    textNodes.forEach(textNode => {
+    textNodes.forEach((textNode) => {
       const parent = textNode.parentElement;
       if (parent && !parent.classList.contains('firefox-bootstrap-highlight')) {
         const highlighted = document.createElement('mark');
         highlighted.className = 'firefox-bootstrap-highlight';
         highlighted.style.backgroundColor = '#8ec07c';
         highlighted.style.color = '#1d2021';
-        
+
         const content = textNode.textContent || '';
         const parts = content.split(searchText);
-        
+
         if (parts.length > 1) {
           const fragment = document.createDocumentFragment();
           parts.forEach((part, index) => {
@@ -148,20 +152,20 @@ function handleHighlightText(searchText: string, sendResponse: Function) {
               fragment.appendChild(document.createTextNode(part));
             }
           });
-          
+
           parent.replaceChild(fragment, textNode);
         }
       }
     });
-    
+
     sendResponse({
       success: true,
-      highlightCount: textNodes.length
+      highlightCount: textNodes.length,
     });
   } catch (error) {
     sendResponse({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }
@@ -177,32 +181,41 @@ function extractMainContent(): string {
     '#content',
     'article',
     '.post-content',
-    '.entry-content'
+    '.entry-content',
   ];
-  
+
   for (const selector of mainSelectors) {
     const element = document.querySelector(selector);
     if (element) {
       return cleanText(element.textContent || '');
     }
   }
-  
+
   // Fallback to body, but filter out common navigation/footer elements
   const body = document.body.cloneNode(true) as HTMLElement;
-  
+
   // Remove navigation, ads, and other non-content elements
   const removeSelectors = [
-    'nav', 'header', 'footer', 'aside',
-    '.navigation', '.nav', '.menu',
-    '.sidebar', '.ad', '.advertisement',
-    '.social', '.share', '.comments'
+    'nav',
+    'header',
+    'footer',
+    'aside',
+    '.navigation',
+    '.nav',
+    '.menu',
+    '.sidebar',
+    '.ad',
+    '.advertisement',
+    '.social',
+    '.share',
+    '.comments',
   ];
-  
-  removeSelectors.forEach(selector => {
+
+  removeSelectors.forEach((selector) => {
     const elements = body.querySelectorAll(selector);
-    elements.forEach(el => el.remove());
+    elements.forEach((el) => el.remove());
   });
-  
+
   return cleanText(body.textContent || '');
 }
 

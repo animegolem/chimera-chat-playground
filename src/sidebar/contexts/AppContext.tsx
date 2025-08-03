@@ -1,11 +1,23 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { AppState, Message, ModelInfo, ChatSession, SelectionInfo } from '@/shared/types';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode,
+} from 'react';
+import {
+  AppState,
+  Message,
+  ModelInfo,
+  ChatSession,
+  SelectionInfo,
+} from '@/shared/types';
 import { DEFAULT_MODELS } from '@/shared/constants';
 import { storage } from '@/lib/storage';
 import { BackgroundMessage, ContentMessage } from '@/shared/messages';
 
 // Action types
-type AppAction = 
+type AppAction =
   | { type: 'SET_MODELS'; models: ModelInfo[] }
   | { type: 'TOGGLE_MODEL'; modelId: string }
   | { type: 'UPDATE_MODEL'; modelId: string; updates: Partial<ModelInfo> }
@@ -29,67 +41,72 @@ const initialState: AppState & { loading: boolean; error: string | null } = {
 };
 
 // Reducer
-function appReducer(state: typeof initialState, action: AppAction): typeof initialState {
+function appReducer(
+  state: typeof initialState,
+  action: AppAction
+): typeof initialState {
   switch (action.type) {
     case 'SET_MODELS':
       return {
         ...state,
-        activeModels: action.models.filter(m => m.active).map(m => m.id)
+        activeModels: action.models.filter((m) => m.active).map((m) => m.id),
       };
-      
+
     case 'TOGGLE_MODEL':
       // This will be handled by background script and reflected in SET_MODELS
       return state;
-      
+
     case 'UPDATE_MODEL':
       // This will be handled by background script and reflected in SET_MODELS
       return state;
-      
+
     case 'SET_CURRENT_SESSION':
       return {
         ...state,
-        currentSession: action.session
+        currentSession: action.session,
       };
-      
+
     case 'ADD_MESSAGE':
       if (!state.currentSession) return state;
-      
+
       const updatedSession = {
         ...state.currentSession,
         messages: [...state.currentSession.messages, action.message],
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       };
-      
+
       return {
         ...state,
-        currentSession: updatedSession
+        currentSession: updatedSession,
       };
-      
+
     case 'SET_SELECTION':
       return {
         ...state,
         currentSelection: action.selection,
-        highlightedLines: action.selection ? action.selection.text.split('\n').length : 0
+        highlightedLines: action.selection
+          ? action.selection.text.split('\n').length
+          : 0,
       };
-      
+
     case 'SET_HIGHLIGHTED_LINES':
       return {
         ...state,
-        highlightedLines: action.count
+        highlightedLines: action.count,
       };
-      
+
     case 'SET_LOADING':
       return {
         ...state,
-        loading: action.loading
+        loading: action.loading,
       };
-      
+
     case 'SET_ERROR':
       return {
         ...state,
-        error: action.error
+        error: action.error,
       };
-      
+
     default:
       return state;
   }
@@ -101,7 +118,10 @@ interface AppContextType {
   dispatch: React.Dispatch<AppAction>;
   actions: {
     toggleModel: (modelId: string) => Promise<void>;
-    updateModel: (modelId: string, updates: Partial<ModelInfo>) => Promise<void>;
+    updateModel: (
+      modelId: string,
+      updates: Partial<ModelInfo>
+    ) => Promise<void>;
     sendMessage: (content: string, modelIds: string[]) => Promise<void>;
     createNewSession: () => Promise<void>;
     loadSession: (sessionId: string) => Promise<void>;
@@ -127,7 +147,7 @@ export function AppProvider({ children }: AppProviderProps) {
   async function initializeApp() {
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
-      
+
       // Load models from storage
       const models = await storage.getModels();
       if (models.length > 0) {
@@ -138,22 +158,21 @@ export function AppProvider({ children }: AppProviderProps) {
         await storage.saveModels(defaultModels);
         dispatch({ type: 'SET_MODELS', models: defaultModels });
       }
-      
+
       // Load current session
       const currentSessionId = await storage.getCurrentSessionId();
       if (currentSessionId) {
         const sessions = await storage.getSessions();
-        const session = sessions.find(s => s.id === currentSessionId);
+        const session = sessions.find((s) => s.id === currentSessionId);
         if (session) {
           dispatch({ type: 'SET_CURRENT_SESSION', session });
         }
       }
-      
+
       // If no session, create one
       if (!currentSessionId) {
         await createNewSession();
       }
-      
     } catch (error) {
       console.error('Failed to initialize app:', error);
       dispatch({ type: 'SET_ERROR', error: 'Failed to initialize app' });
@@ -164,40 +183,48 @@ export function AppProvider({ children }: AppProviderProps) {
 
   function setupMessageListeners() {
     // Listen for messages from background and content scripts
-    browser.runtime.onMessage.addListener((message: BackgroundMessage | ContentMessage) => {
-      switch (message.type) {
-        case 'TAB_GROUP_NAMED':
-          // Could show a notification or update UI
-          console.log('Tab group named:', message.name);
-          break;
-          
-        case 'CONTEXT_MENU_SELECTION':
-          if (message.text) {
-            dispatch({ type: 'SET_SELECTION', selection: {
-              text: message.text,
-              url: message.url || '',
-              title: message.title || '',
-              timestamp: message.timestamp || Date.now()
-            }});
-          }
-          break;
-          
-        case 'TEXT_SELECTED':
-          if (message.text) {
-            dispatch({ type: 'SET_SELECTION', selection: {
-              text: message.text,
-              url: message.url || '',
-              title: message.title || '',
-              timestamp: message.timestamp || Date.now()
-            }});
-          }
-          break;
-          
-        case 'TEXT_SELECTION_CLEARED':
-          dispatch({ type: 'SET_SELECTION', selection: null });
-          break;
+    browser.runtime.onMessage.addListener(
+      (message: BackgroundMessage | ContentMessage) => {
+        switch (message.type) {
+          case 'TAB_GROUP_NAMED':
+            // Could show a notification or update UI
+            console.log('Tab group named:', message.name);
+            break;
+
+          case 'CONTEXT_MENU_SELECTION':
+            if (message.text) {
+              dispatch({
+                type: 'SET_SELECTION',
+                selection: {
+                  text: message.text,
+                  url: message.url || '',
+                  title: message.title || '',
+                  timestamp: message.timestamp || Date.now(),
+                },
+              });
+            }
+            break;
+
+          case 'TEXT_SELECTED':
+            if (message.text) {
+              dispatch({
+                type: 'SET_SELECTION',
+                selection: {
+                  text: message.text,
+                  url: message.url || '',
+                  title: message.title || '',
+                  timestamp: message.timestamp || Date.now(),
+                },
+              });
+            }
+            break;
+
+          case 'TEXT_SELECTION_CLEARED':
+            dispatch({ type: 'SET_SELECTION', selection: null });
+            break;
+        }
       }
-    });
+    );
   }
 
   // Action implementations
@@ -205,9 +232,9 @@ export function AppProvider({ children }: AppProviderProps) {
     try {
       const response = await browser.runtime.sendMessage({
         type: 'TOGGLE_MODEL',
-        modelId
+        modelId,
       });
-      
+
       if (response.success) {
         // Reload models to reflect change
         const models = await storage.getModels();
@@ -225,9 +252,9 @@ export function AppProvider({ children }: AppProviderProps) {
       const response = await browser.runtime.sendMessage({
         type: 'UPDATE_MODEL_SETTINGS',
         modelId,
-        modelSettings: updates
+        modelSettings: updates,
       });
-      
+
       if (response.success) {
         // Reload models to reflect change
         const models = await storage.getModels();
@@ -242,25 +269,26 @@ export function AppProvider({ children }: AppProviderProps) {
 
   async function sendMessage(content: string, modelIds: string[]) {
     if (!state.currentSession) return;
-    
+
     try {
       // Add user message
       const userMessage: Message = {
         id: `msg-${Date.now()}-user`,
         type: 'user',
         content,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      
+
       dispatch({ type: 'ADD_MESSAGE', message: userMessage });
-      
+
       // TODO: Send to LLM service and handle response
       // For now, add a placeholder AI response
       setTimeout(() => {
         const aiMessage: Message = {
           id: `msg-${Date.now()}-ai`,
           type: 'ai',
-          content: 'This is a placeholder response. LLM integration coming in Phase 4!',
+          content:
+            'This is a placeholder response. LLM integration coming in Phase 4!',
           timestamp: Date.now(),
           model: {
             id: modelIds[0],
@@ -269,22 +297,21 @@ export function AppProvider({ children }: AppProviderProps) {
             color: '#8ec07c',
             type: 'local',
             active: true,
-            settings: { temperature: 0.7, systemPrompt: '' }
-          }
+            settings: { temperature: 0.7, systemPrompt: '' },
+          },
         };
-        
+
         dispatch({ type: 'ADD_MESSAGE', message: aiMessage });
       }, 1000);
-      
+
       // Save session
       const updatedSession = {
         ...state.currentSession,
         messages: [...state.currentSession.messages, userMessage],
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       };
-      
+
       await storage.saveSession(updatedSession);
-      
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: 'Failed to send message' });
     }
@@ -299,13 +326,12 @@ export function AppProvider({ children }: AppProviderProps) {
         messages: [],
         models,
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       };
-      
+
       await storage.saveSession(newSession);
       await storage.setCurrentSessionId(newSession.id);
       dispatch({ type: 'SET_CURRENT_SESSION', session: newSession });
-      
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: 'Failed to create session' });
     }
@@ -314,8 +340,8 @@ export function AppProvider({ children }: AppProviderProps) {
   async function loadSession(sessionId: string) {
     try {
       const sessions = await storage.getSessions();
-      const session = sessions.find(s => s.id === sessionId);
-      
+      const session = sessions.find((s) => s.id === sessionId);
+
       if (session) {
         await storage.setCurrentSessionId(sessionId);
         dispatch({ type: 'SET_CURRENT_SESSION', session });
@@ -336,13 +362,11 @@ export function AppProvider({ children }: AppProviderProps) {
       sendMessage,
       createNewSession,
       loadSession,
-    }
+    },
   };
 
   return (
-    <AppContext.Provider value={contextValue}>
-      {children}
-    </AppContext.Provider>
+    <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
   );
 }
 

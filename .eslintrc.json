@@ -1,0 +1,25 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2020": true,
+    "webextensions": true
+  },
+  "extends": ["eslint:recommended", "prettier"],
+  "ignorePatterns": ["dist", ".eslintrc.json"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint", "prettier"],
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "prettier/prettier": "error",
+    "no-console": "off",
+    "no-case-declarations": "off"
+  },
+  "globals": {
+    "browser": "readonly"
+  }
+}

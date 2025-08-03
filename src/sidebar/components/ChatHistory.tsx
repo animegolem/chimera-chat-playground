@@ -47,28 +47,28 @@ function MessageBubble({ message }: MessageBubbleProps) {
           <span>{new Date(message.timestamp).toLocaleDateString()}</span>
           <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
         </div>
-        
+
         {/* Hover UI for user messages */}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          <button 
+          <button
             className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
             title="Re-prompt with this message"
           >
             ↻
           </button>
-          <button 
+          <button
             className="text-gruv-light hover:text-gruv-yellow-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
             title="Edit message"
           >
             ✎
           </button>
-          <button 
+          <button
             className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
             title="Copy message"
           >
             ✂
           </button>
-          <button 
+          <button
             className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
             title="Delete message"
           >
@@ -86,36 +86,34 @@ function MessageBubble({ message }: MessageBubbleProps) {
     >
       <div className="flex items-start gap-2">
         <span>{message.model?.emoji || '🤖'}</span>
-        <span 
+        <span
           className="text-sm font-medium"
           style={{ color: message.model?.color || '#8ec07c' }}
         >
           [{message.model?.name || 'AI'}]
         </span>
       </div>
-      <div className="mt-2 text-sm whitespace-pre-wrap">
-        {message.content}
-      </div>
+      <div className="mt-2 text-sm whitespace-pre-wrap">{message.content}</div>
       <div className="mt-2 flex justify-between text-xs text-gruv-medium">
         <span>{new Date(message.timestamp).toLocaleDateString()}</span>
         <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
       </div>
-      
+
       {/* Hover UI for AI messages */}
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-        <button 
+        <button
           className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
           title="Reload response"
         >
           ↻
         </button>
-        <button 
+        <button
           className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
           title="Copy response"
         >
           ✂
         </button>
-        <button 
+        <button
           className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
           title="Delete response"
         >

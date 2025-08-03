@@ -759,3 +759,91 @@ const FirefoxBootstrap = () => {
 
 export default FirefoxBootstrap;
 #+end_src
+
+
+* TODO Quick Design Rev's
+- The icon for launching the extension doesn't render, it shows a placeholder puzzle piece.
+- lets remove the =(click to toggle, right-click for settings)= it's cleaner and realistically i'm the only user.
+- The idea of showing how many lines are highlighted and will be sent in context to the model eg =3 lines selected= in the prompt next to the file uploader isn't implented. This may just be pending.
+- We should add a back arrow next to new chat. This takes you back to chat history (saved to index db..?)
+  - The chat name should be clickable to rename it and if the user doesn't set it the ai will should update the title over intermittanly the chat to reflect the current coversation for tracking. if the user sets the name manually it's locked and no longer changes.
+- The bright white for the comment box is too stark but i do like the idea, maybe more like a slightly muted green. in line with the curor.
+  - The curspr looks odd over on the side. maybe no "write your prompt" and instead we give it like bash 'prompt@here $ | '
+    - This all goes away when you start actually typing.
+
+ Lets try this and see how it feels.
+
+* Round 2
+- lets reduce to just '$ |'
+- When i highlight lines i see it twice.
+  1. The text next to files
+  2. a longer line e.g. `📄 1 lines selected from Prime Reacts: From C to C++ to Rust to Haskell - YouTube`
+     - lets focus on just option 1 for now
+- The file icon looks a little out of place, maybe if we could do a folder or a scissors emoji it'd work more clearly. just a bit stark white.
+- the accent color when the chat text is selected is still white and hasn't changed. This is maybe not worth focusing on? it may be overridden when we get to tiptap if the solution is non-obvious.
+
+  > can we create an invisible bounding box for each of
+  the three elements under the chat so they move less
+  and basically fill the same space. the lines are
+  also a bit more to the right vs the left. when you
+  don't have lines selected the coming soom extends vs
+   word wrapping etc. lets see if we can make it so
+  it's 3 even boxes and there is no major movement or
+  shift when lines are selected just that ui element
+  is visible or not
+
+● Great idea! Let me create a stable 3-column layout
+  with fixed spacing:
+
+  > the run button is greyed out and becomes clear when
+  there is text which is good but when i hover over it
+   the text becomes invisible. otherwise looks good
+  there. on the messages i think maybe we make the
+  full borders a single accent color not the white +
+  edge
+
+● Let me fix the button hover text visibility issue
+  and update the message card styling
+
+  > can we have the run button turn into a little basic
+  hour glass when submitted? basically like a windows
+  95 like icon that flips until the llm sends it's
+  last token as a user "waiting" indicator? if that's
+  no possible a less custom implementation is fine.
+
+● Great idea! Let me implement a simple hourglass
+  animation for the loading state:
+
+  > that one i can't test now since there is now wait
+  but we'll assume its good for now. if it should work
+   now here is no indication. but the message is
+  instant so that may be normal. last thing is, is it
+  possible for us to dismiss the '$ |" when you click
+  on it instead of when you type? you end up with a
+  cursor under a cursor in an awkward way.
+
+*** All of the above has been implemented EXCEPT
+        1. The hourglass hasn't been tested
+        2. The green on hover for the Run button doesn't work. Maybe run run into
+                CTRL+
+                ENTER
+> when we hover over an AI prompt lets have a hover UI
+   with 'Reload Icon | Delete Icon | Copy Icon ' I am
+  more picturing like unicode eg &#8635; U+1F5D1;
+  U+1F4CB  but similar emoji might be better, not
+  sure. lets try unicode first. The user posts have
+  the same but also and edit icon U+270E
+
+ > i actually really like how that was put in, looks
+  excellent. lets just add reload to the user as well.
+   this would be in a case where they delete the post
+  that was below it (e.g. they didn't like the reply,
+  deleted it, picked a new model) this is a
+  're-prompt" button. most programs make it so hitting
+   our "ctrl+enter" would do the same
+
+ > the unicode for clipboard is actually rendering as
+  the emoji. can we prevent that? lets make those
+  scissors matching the "copied lines" thing if we can
+   do that as the unicode not the emoji (the lines can
+   stay the emoji)

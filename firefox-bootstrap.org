@@ -1,0 +1,761 @@
+#+title: Firefox Bootstrap
+#+date: <2025-08-02> Sat
+
+* 100% Human Written Text
+
+*** The original impulse: "I wish it would just propose a name when i group tabs based on what was just grouped"
+- this needs to be *fast* and /secure/ so we should use a small local llm (eg, genma 8b).
+- If this can show up as a tab complete that's even better but this is not a major blocker.
+- Ideally I'd like to come up with more of these "invisible" little helpers but it's okay if this is "v0.1" that just gives a platform that can be added to overtime.
+** Core Features
+- Support for two LLMs in chat.
+  1. one local llm (llamafile, ollama)
+     - This LLM is primarly in charge of quick tasks like the autofill mentioned above. A small, fast, secure model.
+  2. one api model. in practice the MVP is support for Open AI's api so I can use openrouter and select the AI as i'd like.
+     - The ideal would be to connect this with something like litellm. while this is a quick MVP if i find it useful it'll eventually become a liveview powered by graphIAC.
+  3. Both can be be toggled on and off with a single button push in chat with a nice visual flair eg the button changes for on and off state.
+- The ability to always autofill the tabgroup name when the group is created regardless if the sidebar is open.
+  - /if/ the sidebar is open it can ask "do you want me to suggest other tabs to group to help clean up :)" or "Want help researching 'topic group was just created for'"
+    - This is more prompt engineering than programming.
+- Ability to have a system prompt and ideally basic controls like t .emp, top p etc.
+- Built in react, tailwind and shadcn for nice modern visuals. simple and clean with monospace fonts and a vauge technical feel.
+- using tiptap for rich text chat with the llms.
+- Ability to read the open webpage and ideally the highlighted text in a copilot like way
+  1. If we can have the ui show "3 lines highlighted" in the lower corner or similar to show what is being added in the llm context thats ideal.
+  2. We could have a simple @ command like @check-website 'user question' if you want it to read the whole page.
+- Basic  MCP  Support
+  - The first thing i imagine is being able to talk about something on a page and drop a note into my obsidian locker. this would probably use pandoc to ensure perfect formatting coming in.
+- ultra ultra ultra simple file upload. can just be text files even. in a real version i'd use apache tika but well past the scope here.
+- If you disable the API entirely and only have one LLM selected the mutliple model indicator goes away
+  - I said only two models but it's worth asking if giving 3-5 actually adds any complexity or just uses systems we've already made.
+- Chat history is saved and the name of the chat is assigned by the AI based on content in the background. User can override.
+
+** Aesthetics
+- The LLM's can each be assigned an emoji and color to make them stand out.
+- the font is hack (https://github.com/source-foundry/Hack)
+- The lLM buttons should be pretty small with a mail click being a toggle on/off and a control to access the model settings e.g.
+    1. Model Settings (temp, prompt etc)
+    2. Emoji and Color Settings
+- Text should be rendered with nice ui, codeblocks etc. the format is markdown.  however it should pass through something like dompurify or otherwise not allow the llm to ever execute code.
+- I like the idea of the cursor in the tiptap box flashing as a bar like an old terminal if possible.
+- I like dark earthy colors like dark greens and blocks etc like materialist gruvbox. the main target is firefox darkmode.
+  - if it's trivial to make it toggle with the os color scheme that's rad but it's 0% a priority if it adds complexity.
+
+* Prior Design Work (Overidden by the UI example below)
+** This is a bit more complicated than we need but is from the larger project i'm working on and shows where my head is overall.
+
+#+begin_example
+ *3. Deep Dive: The Chimera Chat (Sidebar View)*
+:PROPERTIES:
+:CUSTOM_ID: deep-dive-the-chimera-chat-sidebar-view
+:END:
+This section breaks down the specific components of the sidebar
+interface, which serves as the primary "ground-level" interaction point.
+
+*3.1 Header Bar*
+
+Located at the very top of the sidebar, this bar provides session-level
+context and navigation.
+
+
+┌───────────────────────────────────────────┐
+│ 🗣️ Game-Dev-Chat │ 🗺️ View Graph │ ... │
+└───────────────────────────────────────────┘
+
+
+- *Components:*
+  - *Session Name:* Displays the name of the active session (e.g.,
+    =Game-Dev-Chat.chimera=). Clicking this opens a quick-switcher menu
+    (VS Code Quick Pick) to select other recent sessions.
+  - *View Graph Button =(Graph 🗺️)=:* The primary pivot action. Clicking
+    this button opens the full, interactive Node Graph Editor for the
+    current session in a new tab in the main VS Code workspace.
+  - *More Options Menu =(...)=:* A standard kebab menu that reveals
+    session-wide actions:
+    - =Export Session...=: Initiates the secure export process.
+    - =Session Information=: Displays metadata like creation date, total
+      token count, and estimated cost.
+    - =Delete Session...=: Initiates the deletion process (with
+      confirmation).
+
+*3.2 Chat History Pane*
+
+The main body of the sidebar, which renders the conversation log.
+
+
+┌───────────────────────────────────────────┐
+│ 👤 YOU                                ... │
+│    @file:src/player.js Analyze this code  │
+│    for bugs.                              │
+├───────────────────────────────────────────┤
+│ 🚀 [Claude-Opus]                      ... │  <- Color-coded left border
+│    The core principle of gVisor is...     │
+│                                           │
+│ 🤖 [GPT-4-Code]                       ... │  <- Different color border
+│    gVisor acts as a sandboxing tech...    │
+│                                           │
+└───────────────────────────────────────────┘
+
+
+- *Icons:* 👤 for the user, 🤖 (or a model-specific logo like the
+  Anthropic or OpenAI icon) for the AI. This is faster to parse than
+  reading text.
+
+- *Color-Coded Borders Or Text:* Each AI response gets a thin (2px) left
+  border colored with its defined terminal color. This provides instant,
+  non-intrusive visual identification of which AI said what.
+  Alternatively we may just do text colors like a terminal. This will
+  take some playing around and trying.
+
+- *Clear Separation:* A subtle hr line separates the user prompt from
+  the AI responses within the card.
+
+- *On-Hover Controls:* The ... menu still appears on hover for a clean
+  default state.
+
+- *Structure:* A single, top-to-bottom stream. There are no alternating
+  "left/right" message bubbles. Indentation/color is used to group AI
+  responses under the user prompt they belong to.
+
+- *User Prompt Rendering:*
+
+
+  YOU:
+  {Prompt Text...}
+
+
+  A simple, bolded =YOU:= prefix clearly delineates user input.
+
+- *AI Response Rendering:*
+
+
+    [{AI Display Name}]:
+    {Response Text...}
+
+
+  Each AI response is prefixed with its user-defined display name (e.g.,
+  =[Claude-Opus]=) and rendered in its user-defined terminal color. The
+  slight indentation visually links it to the parent user prompt.
+
+- *On-Hover Controls:* A subtle =...= icon appears on hover over any
+  message block, which, when clicked, opens a context menu with the
+  relevant atomic actions (=Edit=, =Resend=, =Branch=, etc.). For AI
+  messages with multiple "swipes" (versions), =< >= arrows will also
+  appear on hover, allowing the user to cycle through the different
+  responses for that specific turn.
+
+*3.3 Input Area*
+
+The command center at the bottom of the sidebar for composing the next
+turn.
+
+
+┌───────────────────────────────────────────┐
+│ [Anthropic Logo] Claude-Opus ✓            │
+│ [OpenAI Logo]  GPT-4-Code   ✓            │ <- 3a. Active Model List
+│ [Google Logo]  Gemini-Pro   ─            │
+├───────────────────────────────────────────┤
+│ Write your prompt...                      │
+├───────────────────────────────────────────┤
+│ 📎 2 files │ 🪙 4510 Tokens │ ⚡ Send (Ctrl+Enter) │
+└───────────────────────────────────────────┘#+end_example
+
+- *3a. Active Model List:*
+
+  - Instead of pills, this is now a clear list, making it easier to
+    read.
+  - *Logo:* The official logo for the model provider (Anthropic, OpenAI,
+    Google) is shown for quick recognition.
+  - *Name:* The user-defined display name.
+  - *Status Checkbox:* A simple ✓ (checked) or ─ (unchecked) toggles
+    whether the model is active for the next prompt.
+  - *Right-clicking* any row still opens the full Model Settings Panel.
+
+- *3c. Status & Action Bar:*
+
+  - 📎 2 files: An attachment icon *with a badge* indicating how many
+    files are currently attached to the context. Clicking it opens a
+    pop-over to manage them.
+  - 🪙 4510 Tokens: A token/coin icon *with a live-updating
+    number* showing the estimated token count for the current prompt.
+    The color might change to yellow, then red, as it approaches the
+    context limit.
+  - ⚡ Send (Ctrl+Enter): A "Send" button with a clear icon and the
+    keyboard shortcut hint.
+
+- *Layout:* A multi-part component designed for clarity and control.
+
+  - *Top Row (Active Models):* A row of clickable "pills," one for each
+    model configured for the session. This bar directly controls which
+    models the next prompt will be sent to.
+    - An active model's pill is brightly colored with its defined
+      =terminal color=.
+    - An inactive model's pill is grayed out.
+    - A simple *left-click* toggles the model's active state for the
+      next turn.
+    - A *right-click* on a pill navigates to the full-screen "Model
+      Settings Panel" for that specific model, taking over the sidebar
+      view temporarily.
+  - *Middle (Text Input):* A standard, multi-line =textarea= that
+    automatically resizes as the user types.
+  - *Bottom Row (Action Bar):* A simple bar containing:
+    - =📎 Attach File=: Opens the VS Code file picker to select one or
+      more files from the current workspace to be included in the
+      prompt's context.
+    - =[Send]=: A button to execute the prompt, sending it to all
+      currently active models.
+
+*3.4 Model Settings Panel*
+
+
+┌───────────────────────────────────────────┐
+│ ← Back │ ⚙️ Settings: Claude-Opus         │
+├───────────────────────────────────────────┤
+│                                           │
+│  Display Name     [ Claude-Opus         ] │
+│  Terminal Color   [ 🎨 #D97706           ] │
+│                                           │
+│  Model ID         [ A Logo claude-3... ▼] │
+│                                           │
+│ 🌡️ Temperature   (────────────────●──) │
+│                                           │
+│ 🧠 System Prompt                        │
+│  ┌─────────────────────────────────────┐  │
+│  │ You are an expert AI architect...   │  │
+│  └─────────────────────────────────────┘  │
+│                                           │
+└───────────────────────────────────────────┘
+
+
+- *Visual Polish:*
+  - *Icons:* Each section (🌡️, 🧠) gets a representative icon to guide
+    the eye.
+  - *Color Picker 🎨:* The color input is now clearly a color picker.
+  - *Model ID Dropdown:* The dynamic dropdown now includes the model
+    provider's logo next to the model name for better recognition.
+
+When a user right-clicks a model pill, the chat history view is
+temporarily replaced by this full-sidebar configuration panel, allowing
+for deep customization without leaving the sidebar.
+
+- *Navigation:* A prominent =[← Back to Chat]= button is always visible
+  at the top, allowing for a quick return to the conversation.
+- *Customization Fields:*
+  - *Display Name:* A text input for the friendly name used in the chat
+    history (e.g., "Claude-Opus").
+  - *Terminal Color:* A color picker for the text color used in the chat
+    history.
+  - *Display Style:* [ Border Accent ▼ ] (A dropdown to select between
+    Border Accent, Name Accent, Icon Prefix).
+  - *Model ID:* A *dynamic dropdown* populated by an API call to
+    =Chimera Core=, listing all compatible models from the configured
+    providers. A "custom" value option is available.
+  - *Generation Parameters:* Sliders and text inputs for =Temperature=,
+    =Top P=, =Max Tokens=, etc.
+  - *System Prompt:* A large text area for the pre-prompt.
+  - *Post-History Instructions:* A large text area for the final
+    alignment prompt.
+- *Action:* A =[Save Settings]= button at the bottom persists the
+  configuration to the =Chimera Core= backend for the current session.
+#+end_example
+
+** Technical Keys
+- This is more  a *quick* mvp not something i expect to last forever. it's being used for a linked in post. quick, flashing and giving me a baseline I can add to and decide if it's actually useful.
+- We do however need to ensure secrets are secure. maybe we can lean on the browser secret store? ideally we don't need to lean on full oauth but an API key is a real secret.
+
+* LLM Steering
+
+*Gemini 2.5 Pro*
+
+Excellent. This refined request is exactly what's needed to move from a
+high-level vision to a concrete, actionable technical plan. You've
+clarified the core "magic" feature---the always-on tab naming---and
+provided rich detail on the desired aesthetics and user interactions.
+
+This document will serve as the technical supplement, adding the
+architectural "meat" to the project steering document. It's designed to
+be a blueprint that can be broken down into linear tasks for your
+LLM-driven development process.
+
+--------------
+
+*** *Technical Design Supplement: AI Tab & Chat Assistant*
+:PROPERTIES:
+:CUSTOM_ID: technical-design-supplement-ai-tab-chat-assistant
+:END:
+*Version:* 1.0 *Project:* Firefox Bootstrap *Objective:* To provide a
+detailed technical architecture and implementation plan for the "Firefox
+Bootstrap" extension, translating the project vision into a concrete set
+of development tasks.
+
+--------------
+
+*** *1. Core Architecture: A Multi-Script Approach*
+:PROPERTIES:
+:CUSTOM_ID: core-architecture-a-multi-script-approach
+:END:
+To achieve all the desired features, especially the "always-on"
+functionality, the extension must be architected into three distinct,
+communicating scripts:
+
+1. *Background Script (=background.ts=)*:
+   - *Purpose*: The persistent, invisible core of the extension. It runs
+     as long as Firefox is open.
+   - *Responsibilities*:
+     - *Always-On Tab Naming*: This is its primary mission. It will
+       listen for the =browser.tabGroups.onCreated= event. When a new
+       group is made (even manually), this script will wake up, gather
+       the tabs in that group, send their metadata to the configured
+       *local LLM* for a name suggestion, and update the group's title
+       using =browser.tabGroups.update()=. This ensures the core feature
+       works instantly, without the sidebar needing to be open.
+     - *Context Menu*: It will create right-click context menu items
+       like "Send highlighted text to Assistant".
+2. *Sidebar Script (=main.tsx=)*:
+   - *Purpose*: The main user-facing interface, built with React. It
+     runs only when the sidebar is visible.
+   - *Responsibilities*:
+     - Render the entire UI: Chat history, TipTap input, model toggles,
+       and settings panel.
+     - Manage all chat interactions, sending prompts to the appropriate
+       LLMs (local or API).
+     - Communicate with the Content Script to get highlighted text or
+       page content.
+     - Receive and display proactive messages from the Background Script
+       (e.g., "I just named a group for you, want to add more tabs?").
+3. *Content Script (=content.ts=)*:
+   - *Purpose*: A lightweight script injected directly into web pages
+     the user is viewing.
+   - *Responsibilities*:
+     - Access the page's DOM. It will listen for =mouseup= events to get
+       the currently selected text (=window.getSelection().toString()=).
+     - Send this highlighted text to the Sidebar Script via message
+       passing.
+     - On request from the sidebar (e.g., for an =@check-website=
+       command), it will extract the page's main content
+       (=document.body.innerText=) and send it back.
+
+*Communication Flow:* =[Content Script]= <-> =Message Passing= <->
+=[Sidebar Script]= <-> =Message Passing= <-> =[Background Script]=
+
+--------------
+
+*** *2. Component & State Management Strategy*
+:PROPERTIES:
+:CUSTOM_ID: component-state-management-strategy
+:END:
+*2.1. Tech Stack (Confirmed)*
+
+- *Framework*: React 18+ with TypeScript
+- *Build Tool*: Vite
+- *Styling*: Tailwind CSS
+- *UI Components*: *shadcn/ui*. We will leverage its pre-built,
+  accessible components extensively.
+- *Rich Text Editor*: *TipTap*
+
+*2.2. Component Breakdown (Leveraging =shadcn/ui=)*
+
+- *Main Layout*: =Card= components for overall structure.
+- *Model Toggles*: =Button= with variant states for on/off.
+- *Model Settings Panel*: =Dialog= or a custom full-view component using
+  =Sheet= could work.
+  - *Inputs*: =Input= for text fields, =ColorPicker= (custom or a small
+    library), =Slider= for temperature/top-p, =Textarea= for the system
+    prompt.
+- *Chat History*: Custom components styled with Tailwind.
+- *Input Area*: A custom TipTap component. The "flashing bar" cursor can
+  be achieved with a simple CSS animation applied to a TipTap
+  extension's decoration.
+- *Status Bar*: =TooltipProvider= and =Tooltip= for hover info.
+
+*2.3. State Management*
+
+- *Strategy*: We will use React's built-in =Context= API
+  (=React.useContext=) combined with a =useReducer= hook for robust,
+  centralized state management without external libraries.
+- *=AppContext=*: A single global context will hold:
+  - =models=: An array of model configuration objects (name, emoji,
+    color, settings, active state).
+  - =chatHistory=: The list of messages.
+  - =apiKey=: The securely stored OpenRouter API key.
+  - Functions to dispatch actions (e.g., =toggleModel=, =addMessage=,
+    =updateModelSettings=).
+
+--------------
+
+*** *3. Feature Implementation Deep Dive*
+:PROPERTIES:
+:CUSTOM_ID: feature-implementation-deep-dive
+:END:
+*3.1. Security: API Key Handling*
+
+- *Storage*: We will use =browser.storage.local=. It is scoped to the
+  extension and provides a secure, asynchronous way to store data. It is
+  the appropriate browser-native secret store.
+- *Workflow*:
+  1. The Model Settings panel will check if an API key exists in
+     storage.
+  2. If not, it will display a message and an "Add API Key" button.
+  3. Clicking the button will open a =Dialog= (from =shadcn/ui=)
+     prompting the user for their key.
+  4. The key will be saved to =browser.storage.local= and never exposed
+     in the main UI or stored in the component state directly (it will
+     only be loaded from storage when an API call is made).
+
+*3.2. Contextual Awareness: Reading the Page*
+
+- *Flow for Highlighted Text*:
+  1. The =content.ts= script adds a =mouseup= event listener to the
+     page.
+  2. On =mouseup=, it checks =window.getSelection()=. If there's text,
+     it sends a message to the sidebar:
+     ={ type: 'HIGHLIGHT_UPDATE', text: selectedText }=.
+  3. The sidebar's status bar listens for this message and updates a
+     small UI element (e.g., "📄 12 lines selected").
+  4. When the user sends their prompt, the sidebar appends the stored
+     highlighted text to the LLM context.
+- *Flow for =@check-website=*:
+  1. The sidebar input logic detects the =@check-website= command.
+  2. It sends a message to the active tab's content script:
+     ={ type: 'GET_PAGE_CONTENT' }=.
+  3. The content script replies with the page's =innerText=.
+  4. The sidebar includes this content in the prompt sent to the LLM.
+
+*3.3. Aesthetics & UI Polish*
+
+- *Font*: The =Hack= font will be imported via a =@font-face= rule in
+  =index.css= and applied as the default monospace font in
+  =tailwind.config.js=.
+- *Color Palette*: We will define a Gruvbox-inspired color palette in
+  =tailwind.config.js= to create custom utility classes (e.g.,
+  =bg-gruv-dark=, =text-gruv-aqua=).
+- *Markdown Rendering*: =react-markdown= will be used to render AI
+  responses. Its output will be piped through =DOMPurify.sanitize()=
+  /before/ being rendered to prevent any possibility of XSS or code
+  execution from the LLM's response.
+
+*3.4. MCP Support: Sending Notes to Obsidian*
+
+- *Strategy*: This can be implemented elegantly using Obsidian's
+  "Advanced URI" community plugin.
+- *Workflow*:
+  1. The extension's settings will have a field for the user's "Obsidian
+     Vault Name".
+  2. A new context menu item or a button on a message
+     (=-> Send to Obsidian=) will be added.
+  3. When clicked, the extension will construct a URL like:
+     =obsidian://advanced-uri?vault=MyVault&filepath=Notes/NewNote.md&data={encoded_markdown_content}=
+  4. The extension will then call
+     =browser.tabs.create({ url: obsidianUrl })=, which will prompt the
+     OS to open the link in Obsidian, creating a new note with the chat
+     content. This requires no file access or complex APIs.
+
+* UI Design
+
+** Small Required Changes
+1. remove the view graph button as it's part of the vscode extension.
+2. If you disable the API entirely and only have one LLM selected the mutliple model indicator goes away
+  - I said only two models but it's worth asking if giving 3  actually adds any complexity or just uses systems we've already made. the UI really calls for 3 buttons.
+    - The buttons could then resize based on how many are "active" which in this case just means 'enabled for selection' not just in use.
+
+** The Base UI
+#+begin_src
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Settings, Paperclip, Zap, ArrowLeft } from 'lucide-react';
+
+const FirefoxBootstrap = () => {
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'user',
+      content: 'Can you analyze the React patterns in my current project?'
+    },
+    {
+      id: 2,
+      type: 'ai',
+      model: 'local',
+      modelName: 'Gemma-8B',
+      emoji: '🤖',
+      color: '#8ec07c',
+      content: 'I\'d be happy to analyze your React patterns. I can see you\'re using modern hooks and functional components. Here are some observations:\n\n```jsx\n// Good use of custom hooks\nconst useDataFetch = () => {\n  // Implementation\n}\n```\n\nYour component structure follows best practices with clear separation of concerns.'
+    },
+    {
+      id: 3,
+      type: 'ai',
+      model: 'api',
+      modelName: 'Claude-Opus',
+      emoji: '🌍',
+      color: '#d3869b',
+      content: 'Looking at your codebase, I notice you\'re leveraging React 18 features effectively. The use of Suspense boundaries and concurrent features shows a modern approach to handling asynchronous operations.'
+    }
+  ]);
+
+  const [models, setModels] = useState([
+    {
+      id: 'local',
+      name: 'Gemma-8B',
+      emoji: '🤖',
+      color: '#8ec07c',
+      active: true,
+      temperature: 0.7,
+      systemPrompt: 'You are a helpful AI assistant focused on quick, accurate responses.'
+    },
+    {
+      id: 'api',
+      name: 'Claude-Opus',
+      emoji: '🌍',
+      color: '#d3869b',
+      active: true,
+      temperature: 0.9,
+      systemPrompt: 'You are an expert AI architect with deep knowledge of software development.'
+    }
+  ]);
+
+  const [inputValue, setInputValue] = useState('');
+  const [highlightedLines, setHighlightedLines] = useState(3);
+  const [showSettings, setShowSettings] = useState(false);
+  const [editingModel, setEditingModel] = useState(null);
+
+  const handleSend = () => {
+    if (inputValue.trim()) {
+      setMessages([...messages, {
+        id: messages.length + 1,
+        type: 'user',
+        content: inputValue
+      }]);
+      setInputValue('');
+    }
+  };
+
+  const toggleModel = (modelId) => {
+    setModels(models.map(m =>
+      m.id === modelId ? { ...m, active: !m.active } : m
+    ));
+  };
+
+  const openModelSettings = (model) => {
+    setEditingModel(model);
+    setShowSettings(true);
+  };
+
+  const updateModelSettings = (updates) => {
+    setModels(models.map(m =>
+      m.id === editingModel.id ? { ...m, ...updates } : m
+    ));
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-[#1d2021] text-[#ebdbb2] font-mono" style={{ fontFamily: 'Hack, monospace' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 border-b border-[#3c3836]">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">🗣️ AI-Assistant-Session</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="text-[#ebdbb2] hover:bg-[#3c3836]">
+            🗺️ View Graph
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#ebdbb2] hover:bg-[#3c3836]">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Chat History */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <div key={message.id} className="space-y-2">
+              {message.type === 'user' ? (
+                <Card className="p-4 bg-[#282828] border-[#3c3836]">
+                  <div className="flex items-start gap-2">
+                    <span className="text-[#fabd2f]">👤 YOU</span>
+                  </div>
+                  <p className="mt-2 text-sm">{message.content}</p>
+                </Card>
+              ) : (
+                <Card
+                  className="p-4 bg-[#282828] border-l-2"
+                  style={{ borderLeftColor: message.color }}
+                >
+                  <div className="flex items-start gap-2">
+                    <span>{message.emoji}</span>
+                    <span className="text-sm" style={{ color: message.color }}>
+                      [{message.modelName}]
+                    </span>
+                  </div>
+                  <div className="mt-2 text-sm whitespace-pre-wrap">{message.content}</div>
+                </Card>
+              )}
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* Input Area */}
+      <div className="border-t border-[#3c3836] p-4 space-y-3">
+        {/* Model Pills */}
+        <div className="flex gap-2">
+          {models.map((model) => (
+            <button
+              key={model.id}
+              onClick={() => toggleModel(model.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                openModelSettings(model);
+              }}
+              className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 transition-all ${
+                model.active
+                  ? 'bg-opacity-30 border'
+                  : 'bg-[#282828] text-[#504945] border border-[#3c3836]'
+              }`}
+              style={model.active ? {
+                backgroundColor: model.color + '30',
+                borderColor: model.color,
+                color: model.color
+              } : {}}
+            >
+              <span>{model.emoji}</span>
+              <span>{model.name}</span>
+            </button>
+          ))}
+          <span className="text-xs text-[#504945] self-center ml-2">
+            (right-click for settings)
+          </span>
+        </div>
+
+        {/* Text Input */}
+        <div className="relative">
+          <Textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Write your prompt..."
+            className="min-h-[80px] bg-[#282828] border-[#3c3836] text-[#ebdbb2] placeholder-[#504945] resize-none pr-2"
+            style={{ fontFamily: 'Hack, monospace' }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.ctrlKey) {
+                handleSend();
+              }
+            }}
+          />
+          <div
+            className="absolute top-2 right-2 w-0.5 h-5 bg-[#8ec07c] animate-pulse"
+            style={{ animation: 'blink 1s infinite' }}
+          />
+        </div>
+
+        {/* Status Bar */}
+        <div className="flex items-center justify-between text-xs text-[#a89984]">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1">
+              <Paperclip className="h-3 w-3" />
+              2 files
+            </span>
+            {highlightedLines > 0 && (
+              <span className="text-[#8ec07c]">📄 {highlightedLines} lines highlighted</span>
+            )}
+          </div>
+          <Button
+            onClick={handleSend}
+            size="sm"
+            className="bg-[#458588] hover:bg-[#83a598] text-[#1d2021]"
+          >
+            <Zap className="h-3 w-3 mr-1" />
+            Send (Ctrl+Enter)
+          </Button>
+        </div>
+      </div>
+
+      {/* Model Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="bg-[#1d2021] text-[#ebdbb2] border-[#3c3836]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings: {editingModel?.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          {editingModel && (
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Display Name</Label>
+                <Input
+                  id="displayName"
+                  value={editingModel.name}
+                  onChange={(e) => updateModelSettings({ name: e.target.value })}
+                  className="bg-[#282828] border-[#3c3836] text-[#ebdbb2]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="emoji">Emoji</Label>
+                <Input
+                  id="emoji"
+                  value={editingModel.emoji}
+                  onChange={(e) => updateModelSettings({ emoji: e.target.value })}
+                  className="bg-[#282828] border-[#3c3836] text-[#ebdbb2] w-20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="color">Terminal Color</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="color"
+                    type="color"
+                    value={editingModel.color}
+                    onChange={(e) => updateModelSettings({ color: e.target.value })}
+                    className="w-20 h-10 bg-[#282828] border-[#3c3836]"
+                  />
+                  <span className="text-sm">{editingModel.color}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="temperature">🌡️ Temperature: {editingModel.temperature}</Label>
+                <Slider
+                  id="temperature"
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  value={[editingModel.temperature]}
+                  onValueChange={([value]) => updateModelSettings({ temperature: value })}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="systemPrompt">🧠 System Prompt</Label>
+                <Textarea
+                  id="systemPrompt"
+                  value={editingModel.systemPrompt}
+                  onChange={(e) => updateModelSettings({ systemPrompt: e.target.value })}
+                  className="min-h-[100px] bg-[#282828] border-[#3c3836] text-[#ebdbb2]"
+                />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <style jsx>{`
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default FirefoxBootstrap;
+#+end_src

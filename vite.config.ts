@@ -1,0 +1,49 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      input: {
+        // React sidebar application
+        sidebar: resolve(__dirname, 'src/sidebar/index.tsx'),
+        // Background script
+        background: resolve(__dirname, 'src/background/index.ts'),
+        // Content script
+        content: resolve(__dirname, 'src/content/index.ts'),
+      },
+      output: {
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]'
+      }
+    },
+    
+    // Don't minify for easier debugging during development
+    minify: false,
+    
+    // Generate source maps for debugging
+    sourcemap: true,
+    
+    // Ensure we can use browser APIs
+    target: 'es2020',
+    
+    // Copy public assets
+    copyPublicDir: true
+  },
+  
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
+  
+  define: {
+    // Ensure we're building for the browser extension environment
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+  }
+});

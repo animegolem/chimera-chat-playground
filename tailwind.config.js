@@ -15,7 +15,7 @@ export default {
         gruv: {
           // Dark theme colors
           'dark': '#1d2021',
-          'dark-soft': '#32302f',
+          'dark-soft': '#282828',
           'dark-hard': '#1b1b1b',
           
           // Medium tones

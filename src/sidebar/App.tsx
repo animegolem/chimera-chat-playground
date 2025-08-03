@@ -51,7 +51,20 @@ function AppContent() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gruv-medium">
         <div className="flex items-center gap-2">
-          <span className="text-sm">🗣️ {state.currentSession?.name || 'Firefox Bootstrap'}</span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6 text-gruv-light hover:bg-gruv-medium"
+            title="Back to chat history"
+          >
+            ←
+          </Button>
+          <button 
+            className="text-sm hover:text-gruv-yellow-bright transition-colors"
+            title="Click to rename chat"
+          >
+            🗣️ {state.currentSession?.name || 'New Chat'}
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gruv-light-soft">{EXTENSION_INFO.VERSION}</span>
@@ -77,14 +90,6 @@ function AppContent() {
       {/* Input Area */}
       <InputArea />
 
-      {/* Status indicators */}
-      {state.currentSelection && (
-        <div className="px-3 py-1 bg-gruv-dark-soft border-t border-gruv-medium">
-          <div className="text-xs text-gruv-aqua-bright">
-            📄 {state.highlightedLines} lines selected from {state.currentSelection.title}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

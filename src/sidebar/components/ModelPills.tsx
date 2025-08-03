@@ -31,9 +31,6 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
           }}
         />
       ))}
-      <span className="text-xs text-gruv-medium self-center ml-2">
-        (click to toggle, right-click for settings)
-      </span>
     </div>
   );
 }

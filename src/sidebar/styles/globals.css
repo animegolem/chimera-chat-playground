@@ -67,6 +67,16 @@
     51%, 100% { opacity: 0; }
   }
 
+  @keyframes hourglass-flip {
+    0%, 50% { content: '⧗'; }
+    51%, 100% { content: '⧖'; }
+  }
+
+  .hourglass-loading::after {
+    content: '⧗';
+    animation: hourglass-flip 1s infinite;
+  }
+
   /* Custom scrollbar for Gruvbox theme */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;

@@ -2,6 +2,8 @@ import React, { useCallback, useImperativeHandle, forwardRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Typography from '@tiptap/extension-typography';
+import Highlight from '@tiptap/extension-highlight';
 
 interface TipTapEditorProps {
   content: string;
@@ -36,22 +38,9 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(
   ) => {
     const editor = useEditor({
       extensions: [
-        StarterKit.configure({
-          // Disable heading levels for chat input
-          heading: false,
-          // Keep basic formatting
-          bold: {},
-          italic: {},
-          code: {},
-          codeBlock: {},
-          blockquote: {},
-          bulletList: {},
-          orderedList: {},
-          horizontalRule: false,
-          // Enable paragraph and line breaks
-          paragraph: {},
-          hardBreak: {},
-        }),
+        StarterKit,
+        Typography,
+        Highlight,
         Placeholder.configure({
           placeholder,
           emptyEditorClass: 'is-editor-empty',
@@ -59,15 +48,69 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(
       ],
       content,
       editable: !disabled,
+      onCreate: ({ editor }) => {
+        // Debug: Log available commands and schema
+        console.log('TipTap Debug - Available commands:', Object.keys(editor.commands));
+        console.log('TipTap Debug - Schema nodes:', Object.keys(editor.schema.nodes));
+        console.log('TipTap Debug - Schema marks:', Object.keys(editor.schema.marks));
+      },
       onUpdate: ({ editor }) => {
-        // Get plain text content for now, could be HTML later
-        const text = editor.getText();
-        onChange(text);
+        // Get HTML content for rich user posts
+        const html = editor.getHTML();
+        onChange(html);
       },
       onFocus,
       onBlur,
       editorProps: {
         handleKeyDown: (_view, event) => {
+          // Debug input rule triggers
+          if (event.key === ' ' && _view.state.selection.$head.parent.textContent.match(/^[#>*`]/)) {
+            const text = _view.state.selection.$head.parent.textContent;
+            console.log('TipTap Debug - Potential markdown trigger:', {
+              key: event.key,
+              text: text,
+              position: _view.state.selection.$head.pos,
+              parentPos: _view.state.selection.$head.start(),
+              nodeType: _view.state.selection.$head.parent.type.name
+            });
+            
+            // Test command availability using our editor instance
+            if (editor) {
+              if (text.startsWith('#')) {
+                console.log('TipTap Debug - Testing heading command:', {
+                  canToggleHeading: editor.can().toggleHeading({ level: 1 }),
+                  hasHeadingCommand: !!editor.commands.toggleHeading,
+                  currentNode: _view.state.selection.$head.parent.type.name
+                });
+                
+                // MANUAL FIX: Since input rules aren't working, manually trigger the transformation
+                console.log('TipTap Debug - Manually triggering heading transformation');
+                const from = _view.state.selection.$head.start();
+                const to = _view.state.selection.$head.pos;
+                editor.commands.deleteRange({ from, to });
+                editor.commands.toggleHeading({ level: 1 });
+                return true; // Prevent default to stop the space from being added
+              }
+              if (text.startsWith('>')) {
+                console.log('TipTap Debug - Testing blockquote command:', {
+                  canToggleBlockquote: editor.can().toggleBlockquote(),
+                  hasBlockquoteCommand: !!editor.commands.toggleBlockquote,
+                  currentNode: _view.state.selection.$head.parent.type.name
+                });
+                
+                // MANUAL FIX: Manually trigger blockquote transformation  
+                console.log('TipTap Debug - Manually triggering blockquote transformation');
+                const from = _view.state.selection.$head.start();
+                const to = _view.state.selection.$head.pos;
+                editor.commands.deleteRange({ from, to });
+                editor.commands.toggleBlockquote();
+                return true; // Prevent default
+              }
+            } else {
+              console.log('TipTap Debug - Editor not available yet');
+            }
+          }
+          
           if (onKeyDown) {
             onKeyDown(event);
           }
@@ -182,6 +225,72 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(
         
         :global(.ProseMirror li) {
           margin: 2px 0;
+        }
+        
+        :global(.ProseMirror h1) {
+          font-size: 1.5em;
+          font-weight: bold;
+          color: #fb4934;
+          margin: 8px 0 4px 0;
+          border-bottom: 2px solid #fb4934;
+          padding-bottom: 2px;
+        }
+        
+        :global(.ProseMirror h2) {
+          font-size: 1.3em;
+          font-weight: bold;
+          color: #fabd2f;
+          margin: 6px 0 3px 0;
+        }
+        
+        :global(.ProseMirror h3) {
+          font-size: 1.2em;
+          font-weight: bold;
+          color: #8ec07c;
+          margin: 6px 0 3px 0;
+        }
+        
+        :global(.ProseMirror h4) {
+          font-size: 1.1em;
+          font-weight: bold;
+          color: #83a598;
+          margin: 4px 0 2px 0;
+        }
+        
+        :global(.ProseMirror h5) {
+          font-size: 1.05em;
+          font-weight: bold;
+          color: #d3869b;
+          margin: 4px 0 2px 0;
+        }
+        
+        :global(.ProseMirror h6) {
+          font-size: 1em;
+          font-weight: bold;
+          color: #fe8019;
+          margin: 4px 0 2px 0;
+        }
+        
+        :global(.ProseMirror hr) {
+          border: none;
+          border-top: 2px solid #504945;
+          margin: 12px 0;
+          height: 1px;
+        }
+        
+        :global(.ProseMirror .bullet-list) {
+          list-style-type: disc;
+        }
+        
+        :global(.ProseMirror .ordered-list) {
+          list-style-type: decimal;
+        }
+        
+        :global(.ProseMirror mark) {
+          background-color: #fabd2f;
+          color: #1d2021;
+          border-radius: 3px;
+          padding: 1px 2px;
         }
       `}</style>
       </div>

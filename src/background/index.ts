@@ -96,7 +96,11 @@ browser.runtime.onMessage.addListener(
     sendResponse: (response: ResponseMessage) => void
   ) => {
     if (FEATURE_FLAGS.DEBUG_MESSAGES) {
-      console.log('Background received message:', message.type, message);
+      console.log(
+        'Background received message:',
+        (message as any).type,
+        message
+      );
     }
 
     // Handle async messages
@@ -241,7 +245,6 @@ async function handleToggleModel(
 }
 
 // Helper functions
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function generateTabGroupName(
   tabData: Array<{ title: string; url: string }>
 ): Promise<string> {
@@ -319,7 +322,6 @@ async function generateTabGroupName(
   return `${tabData.length} Tabs`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function extractHostname(url: string): string {
   try {
     return new URL(url).hostname;

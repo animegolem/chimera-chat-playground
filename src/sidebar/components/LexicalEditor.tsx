@@ -5,7 +5,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { EditorState } from 'lexical';
+import { EditorState, $getRoot } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { ListItemNode, ListNode } from '@lexical/list';
@@ -34,13 +34,14 @@ export interface LexicalEditorRef {
   getEditor: () => any;
 }
 
-function MyCustomAutoFocusPlugin() {
+function MyCustomAutoFocusPlugin({ shouldFocus = true }: { shouldFocus?: boolean }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    // Focus the editor when mounted
-    editor.focus();
-  }, [editor]);
+    if (shouldFocus) {
+      editor.focus();
+    }
+  }, [editor, shouldFocus]);
 
   return null;
 }
@@ -72,6 +73,29 @@ function PlaceholderComponent({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+function EditorRefPlugin({ 
+  editorRef 
+}: { 
+  editorRef: React.MutableRefObject<{ focus: () => void; clear: () => void; getEditor: () => any } | null> 
+}) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.focus = () => editor.focus();
+      editorRef.current.clear = () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+        });
+      };
+      editorRef.current.getEditor = () => editor;
+    }
+  }, [editor, editorRef]);
+
+  return null;
 }
 
 export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
@@ -140,25 +164,26 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
     const handleChange = useCallback(
       (editorState: EditorState, editor: any) => {
         editorState.read(() => {
-          const htmlString = $generateHtmlFromNodes(editor);
-          onChange(htmlString);
+          const root = $getRoot();
+          const textContent = root.getTextContent();
+          onChange(textContent);
         });
       },
       [onChange]
     );
 
+    // Create a ref object for the EditorRefPlugin
+    const internalRef = React.useRef<{ focus: () => void; clear: () => void; getEditor: () => any } | null>({
+      focus: () => {},
+      clear: () => {},
+      getEditor: () => null,
+    });
+
     // Expose methods for parent component
     useImperativeHandle(ref, () => ({
-      focus: () => {
-        // Focus will be handled by the AutoFocusPlugin
-      },
-      clear: () => {
-        // TODO: Implement clear functionality
-      },
-      getEditor: () => {
-        // TODO: Return the actual editor instance
-        return null;
-      },
+      focus: () => internalRef.current?.focus(),
+      clear: () => internalRef.current?.clear(),
+      getEditor: () => internalRef.current?.getEditor(),
     }));
 
     return (
@@ -183,6 +208,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
           <KeyDownPlugin onKeyDown={onKeyDown} />
+          <EditorRefPlugin editorRef={internalRef} />
           <MyCustomAutoFocusPlugin />
         </LexicalComposer>
 

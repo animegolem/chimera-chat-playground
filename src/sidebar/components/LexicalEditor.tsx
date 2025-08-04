@@ -107,9 +107,9 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
         root: 'relative min-h-[60px] bg-transparent text-gruv-light font-mono text-sm leading-relaxed',
         paragraph: 'm-0 p-0',
         heading: {
-          h1: 'text-xl font-bold text-gruv-red mb-2 pb-1 border-b-2 border-gruv-red',
-          h2: 'text-lg font-bold text-gruv-yellow mb-1',
-          h3: 'text-base font-bold text-gruv-green mb-1',
+          h1: 'text-lg font-bold text-gruv-red mb-1',
+          h2: 'text-base font-bold text-gruv-yellow mb-1',
+          h3: 'text-sm font-bold text-gruv-green mb-1',
           h4: 'text-sm font-bold text-gruv-blue mb-1',
           h5: 'text-sm font-bold text-gruv-purple mb-1',
           h6: 'text-sm font-bold text-gruv-orange mb-1',
@@ -139,7 +139,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
 
     const handleChange = useCallback(
       (editorState: EditorState, editor: any) => {
-        editor.update(() => {
+        editorState.read(() => {
           const htmlString = $generateHtmlFromNodes(editor);
           onChange(htmlString);
         });

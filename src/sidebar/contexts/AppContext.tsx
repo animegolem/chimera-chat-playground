@@ -3,6 +3,7 @@ import React, {
   useContext,
   useReducer,
   useEffect,
+  useRef,
   ReactNode,
 } from 'react';
 import {
@@ -26,10 +27,11 @@ type AppAction =
   | { type: 'SET_SELECTION'; selection: SelectionInfo | null }
   | { type: 'SET_HIGHLIGHTED_LINES'; count: number }
   | { type: 'SET_LOADING'; loading: boolean }
+  | { type: 'SET_SENDING'; sending: boolean }
   | { type: 'SET_ERROR'; error: string | null };
 
 // Initial state
-const initialState: AppState & { loading: boolean; error: string | null } = {
+const initialState: AppState & { loading: boolean; error: string | null; sending: boolean } = {
   currentSession: null,
   sessions: [],
   activeModels: [],
@@ -37,6 +39,7 @@ const initialState: AppState & { loading: boolean; error: string | null } = {
   highlightedLines: 0,
   sidebarOpen: true,
   loading: false,
+  sending: false,
   error: null,
 };
 
@@ -99,6 +102,12 @@ function appReducer(
       return {
         ...state,
         loading: action.loading,
+      };
+
+    case 'SET_SENDING':
+      return {
+        ...state,
+        sending: action.sending,
       };
 
     case 'SET_ERROR':
@@ -267,10 +276,36 @@ export function AppProvider({ children }: AppProviderProps) {
     }
   }
 
+  // Track recent send attempts to prevent duplicates
+  const sendDedupeMap = useRef(new Map<string, number>());
+
   async function sendMessage(content: string, modelIds: string[]) {
-    if (!state.currentSession) return;
+    if (!state.currentSession || state.sending) return;
+
+    // Generate unique send ID based on content and timestamp
+    const sendId = `${content.substring(0, 20)}-${Date.now()}`;
+    const lastSend = sendDedupeMap.current.get(sendId) || 0;
+    
+    // Reject if same content sent within 500ms
+    if (Date.now() - lastSend < 500) {
+      console.warn('[AppContext] Duplicate send rejected', { 
+        sendId, 
+        contentPreview: content.substring(0, 30) + '...',
+        timeSinceLastSend: Date.now() - lastSend 
+      });
+      return;
+    }
+    
+    sendDedupeMap.current.set(sendId, Date.now());
+    console.log('[AppContext] sendMessage called', { 
+      sendId, 
+      contentLength: content.length,
+      currentSending: state.sending
+    });
 
     try {
+      dispatch({ type: 'SET_SENDING', sending: true });
+
       // Add user message
       const userMessage: Message = {
         id: `msg-${Date.now()}-user`,
@@ -314,6 +349,8 @@ export function AppProvider({ children }: AppProviderProps) {
       await storage.saveSession(updatedSession);
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: 'Failed to send message' });
+    } finally {
+      dispatch({ type: 'SET_SENDING', sending: false });
     }
   }
 

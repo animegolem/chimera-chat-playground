@@ -47,23 +47,67 @@ function MyCustomAutoFocusPlugin({ shouldFocus = true }: { shouldFocus?: boolean
   return null;
 }
 
-function KeyDownPlugin({ onKeyDown }: { onKeyDown?: (event: KeyboardEvent) => void }) {
+function KeyDownPlugin({ onKeyDown, onContentChange }: { 
+  onKeyDown?: (event: KeyboardEvent) => void;
+  onContentChange?: (content?: string) => void;
+}) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    if (!onKeyDown) return;
+    if (!onKeyDown && !onContentChange) return;
+
+    let cleanup: (() => void) | null = null;
+    
+    console.log('[LexicalEditor] Registering KeyDown plugin', { 
+      timestamp: Date.now(), 
+      handlerRef: onKeyDown?.toString().substring(0, 50) + '...'
+    });
 
     const removeListener = editor.registerRootListener((rootElement) => {
+      // Clean up any existing listener first
+      if (cleanup) {
+        console.log('[LexicalEditor] Cleaning up previous listener');
+        cleanup();
+        cleanup = null;
+      }
+
       if (rootElement !== null) {
-        rootElement.addEventListener('keydown', onKeyDown);
-        return () => {
-          rootElement.removeEventListener('keydown', onKeyDown);
+        const cleanupFunctions: (() => void)[] = [];
+        
+        if (onKeyDown) {
+          console.log('[LexicalEditor] Adding keydown listener to root element');
+          rootElement.addEventListener('keydown', onKeyDown);
+          cleanupFunctions.push(() => {
+            console.log('[LexicalEditor] Removing keydown listener from root element');
+            rootElement.removeEventListener('keydown', onKeyDown);
+          });
+        }
+        
+        if (onContentChange) {
+          console.log('[LexicalEditor] Adding paste listener to root element');
+          const handlePaste = () => {
+            // Delay to allow paste content to be processed
+            setTimeout(onContentChange, 50);
+          };
+          rootElement.addEventListener('paste', handlePaste);
+          cleanupFunctions.push(() => {
+            console.log('[LexicalEditor] Removing paste listener from root element');
+            rootElement.removeEventListener('paste', handlePaste);
+          });
+        }
+        
+        cleanup = () => {
+          cleanupFunctions.forEach(fn => fn());
         };
       }
     });
 
-    return removeListener;
-  }, [editor, onKeyDown]);
+    return () => {
+      console.log('[LexicalEditor] KeyDown plugin cleanup effect running');
+      cleanup?.();
+      removeListener();
+    };
+  }, [editor, onKeyDown, onContentChange]);
 
   return null;
 }
@@ -172,8 +216,11 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
 
     const handleChange = useCallback(
       (editorState: EditorState, editor: any) => {
-        // Don't call onChange - parent will poll for content when needed
-        // This prevents message spam on every keystroke
+        // Call onChange to notify parent of content changes
+        // This enables proper button state and cursor management
+        if (onChange) {
+          onChange(''); // We don't need to pass actual content, just trigger the check
+        }
       },
       [onChange]
     );
@@ -200,8 +247,13 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <RichTextPlugin
             contentEditable={
               <ContentEditable 
-                className="min-h-[60px] outline-none bg-transparent text-gruv-light font-mono text-sm p-0 m-0"
-                style={{ fontFamily: 'Courier New, monospace' }}
+                className="min-h-[60px] outline-none bg-transparent text-gruv-light font-mono text-sm p-0 m-0 break-words leading-relaxed"
+                style={{ 
+                  fontFamily: 'Courier New, monospace',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  whiteSpace: 'pre-wrap'
+                }}
               />
             }
             placeholder={
@@ -215,7 +267,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <ListPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
-          <KeyDownPlugin onKeyDown={onKeyDown} />
+          <KeyDownPlugin onKeyDown={onKeyDown} onContentChange={onChange} />
           <EditorRefPlugin editorRef={internalRef} />
           <MyCustomAutoFocusPlugin />
         </LexicalComposer>

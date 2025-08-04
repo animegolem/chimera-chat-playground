@@ -23,7 +23,9 @@ export function InputArea({ className = '' }: InputAreaProps) {
   }, []);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || state.loading) return;
+    // Get current text from editor instead of state
+    const currentText = editorRef.current?.getText() || '';
+    if (!currentText.trim() || state.loading) return;
 
     const activeModelIds = state.activeModels;
     if (activeModelIds.length === 0) {
@@ -31,7 +33,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
       return;
     }
 
-    await actions.sendMessage(inputValue.trim(), activeModelIds);
+    await actions.sendMessage(currentText.trim(), activeModelIds);
     setInputValue('');
 
     // Clear and refocus the editor
@@ -54,7 +56,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
       <div className="relative">
         <div className="bg-gruv-dark-soft border border-gruv-medium rounded-md p-3">
           {/* Bash-style prompt when empty */}
-          {!inputValue && !isFocused && (
+          {!isFocused && (
             <div className="absolute top-3 left-3 text-gruv-medium pointer-events-none flex items-center gap-1">
               <span className="text-gruv-light-soft">$</span>
               <div className="w-0.5 h-4 bg-gruv-aqua-bright terminal-cursor ml-1" />
@@ -62,8 +64,8 @@ export function InputArea({ className = '' }: InputAreaProps) {
           )}
           <LexicalEditor
             ref={editorRef}
-            content={inputValue}
-            onChange={setInputValue}
+            content=""
+            onChange={() => {}} 
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
@@ -101,7 +103,6 @@ export function InputArea({ className = '' }: InputAreaProps) {
             onClick={handleSend}
             size="sm"
             disabled={
-              !inputValue.trim() ||
               state.loading ||
               state.activeModels.length === 0
             }

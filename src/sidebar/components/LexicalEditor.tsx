@@ -32,6 +32,7 @@ export interface LexicalEditorRef {
   focus: () => void;
   clear: () => void;
   getEditor: () => any;
+  getText: () => string;
 }
 
 function MyCustomAutoFocusPlugin({ shouldFocus = true }: { shouldFocus?: boolean }) {
@@ -78,7 +79,7 @@ function PlaceholderComponent({ children }: { children: React.ReactNode }) {
 function EditorRefPlugin({ 
   editorRef 
 }: { 
-  editorRef: React.MutableRefObject<{ focus: () => void; clear: () => void; getEditor: () => any } | null> 
+  editorRef: React.MutableRefObject<{ focus: () => void; clear: () => void; getEditor: () => any; getText: () => string } | null> 
 }) {
   const [editor] = useLexicalComposerContext();
 
@@ -92,6 +93,14 @@ function EditorRefPlugin({
         });
       };
       editorRef.current.getEditor = () => editor;
+      editorRef.current.getText = () => {
+        let text = '';
+        editor.getEditorState().read(() => {
+          const root = $getRoot();
+          text = root.getTextContent();
+        });
+        return text;
+      };
     }
   }, [editor, editorRef]);
 
@@ -163,20 +172,18 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
 
     const handleChange = useCallback(
       (editorState: EditorState, editor: any) => {
-        editorState.read(() => {
-          const root = $getRoot();
-          const textContent = root.getTextContent();
-          onChange(textContent);
-        });
+        // Don't call onChange on every keystroke - only update when explicitly requested
+        // The parent will call getTextContent() when it actually needs the content
       },
       [onChange]
     );
 
     // Create a ref object for the EditorRefPlugin
-    const internalRef = React.useRef<{ focus: () => void; clear: () => void; getEditor: () => any } | null>({
+    const internalRef = React.useRef<{ focus: () => void; clear: () => void; getEditor: () => any; getText: () => string } | null>({
       focus: () => {},
       clear: () => {},
       getEditor: () => null,
+      getText: () => '',
     });
 
     // Expose methods for parent component
@@ -184,6 +191,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
       focus: () => internalRef.current?.focus(),
       clear: () => internalRef.current?.clear(),
       getEditor: () => internalRef.current?.getEditor(),
+      getText: () => internalRef.current?.getText() || '',
     }));
 
     return (

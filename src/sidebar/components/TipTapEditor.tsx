@@ -38,7 +38,17 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(
   ) => {
     const editor = useEditor({
       extensions: [
-        StarterKit,
+        StarterKit.configure({
+          heading: {
+            levels: [1, 2, 3, 4, 5, 6],
+          },
+          blockquote: true,
+          bulletList: true,
+          orderedList: true,
+          listItem: true,
+          code: true,
+          codeBlock: true,
+        }),
         Typography,
         Highlight,
         Placeholder.configure({
@@ -54,6 +64,31 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(
         console.log('TipTap Debug - Schema nodes:', Object.keys(editor.schema.nodes));
         console.log('TipTap Debug - Schema marks:', Object.keys(editor.schema.marks));
       },
+      // ADD THIS HOOK FOR ADVANCED DEBUGGING
+      onTransaction: ({ transaction }) => {
+        const inputRuleMeta = transaction.getMeta('inputRule');
+        if (inputRuleMeta) {
+          console.log('TipTap Debug: Input Rule triggered!', {
+            from: inputRuleMeta.from,
+            to: inputRuleMeta.to,
+            text: inputRuleMeta.text,
+            rule: inputRuleMeta.rule
+          });
+        }
+        
+        // Also check for other relevant metadata
+        const addToHistoryMeta = transaction.getMeta('addToHistory');
+        const transformMeta = transaction.getMeta('transform');
+        
+        if (addToHistoryMeta !== undefined || transformMeta) {
+          console.log('TipTap Debug: Transaction metadata:', {
+            addToHistory: addToHistoryMeta,
+            transform: transformMeta,
+            docChanged: transaction.docChanged,
+            steps: transaction.steps.length
+          });
+        }
+      },
       onUpdate: ({ editor }) => {
         // Get HTML content for rich user posts
         const html = editor.getHTML();
@@ -62,60 +97,7 @@ export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(
       onFocus,
       onBlur,
       editorProps: {
-        handleKeyDown: (_view, event) => {
-          // Debug input rule triggers
-          if (event.key === ' ' && _view.state.selection.$head.parent.textContent.match(/^[#>*`]/)) {
-            const text = _view.state.selection.$head.parent.textContent;
-            console.log('TipTap Debug - Potential markdown trigger:', {
-              key: event.key,
-              text: text,
-              position: _view.state.selection.$head.pos,
-              parentPos: _view.state.selection.$head.start(),
-              nodeType: _view.state.selection.$head.parent.type.name
-            });
-            
-            // Test command availability using our editor instance
-            if (editor) {
-              if (text.startsWith('#')) {
-                console.log('TipTap Debug - Testing heading command:', {
-                  canToggleHeading: editor.can().toggleHeading({ level: 1 }),
-                  hasHeadingCommand: !!editor.commands.toggleHeading,
-                  currentNode: _view.state.selection.$head.parent.type.name
-                });
-                
-                // MANUAL FIX: Since input rules aren't working, manually trigger the transformation
-                console.log('TipTap Debug - Manually triggering heading transformation');
-                const from = _view.state.selection.$head.start();
-                const to = _view.state.selection.$head.pos;
-                editor.commands.deleteRange({ from, to });
-                editor.commands.toggleHeading({ level: 1 });
-                return true; // Prevent default to stop the space from being added
-              }
-              if (text.startsWith('>')) {
-                console.log('TipTap Debug - Testing blockquote command:', {
-                  canToggleBlockquote: editor.can().toggleBlockquote(),
-                  hasBlockquoteCommand: !!editor.commands.toggleBlockquote,
-                  currentNode: _view.state.selection.$head.parent.type.name
-                });
-                
-                // MANUAL FIX: Manually trigger blockquote transformation  
-                console.log('TipTap Debug - Manually triggering blockquote transformation');
-                const from = _view.state.selection.$head.start();
-                const to = _view.state.selection.$head.pos;
-                editor.commands.deleteRange({ from, to });
-                editor.commands.toggleBlockquote();
-                return true; // Prevent default
-              }
-            } else {
-              console.log('TipTap Debug - Editor not available yet');
-            }
-          }
-          
-          if (onKeyDown) {
-            onKeyDown(event);
-          }
-          return false; // Don't prevent default
-        },
+        // We are removing handleKeyDown to let TipTap's built-in input rules work
         attributes: {
           class: `prose prose-sm max-w-none focus:outline-none ${className}`,
           style: 'font-family: Courier New, monospace; min-height: 60px;',

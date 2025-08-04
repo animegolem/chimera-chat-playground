@@ -172,13 +172,8 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
 
     const handleChange = useCallback(
       (editorState: EditorState, editor: any) => {
-        // Call onChange for UI state tracking (like showing/hiding prompt)
-        // but only pass text content, not trigger message sending
-        editorState.read(() => {
-          const root = $getRoot();
-          const textContent = root.getTextContent();
-          onChange(textContent);
-        });
+        // Don't call onChange - parent will poll for content when needed
+        // This prevents message spam on every keystroke
       },
       [onChange]
     );

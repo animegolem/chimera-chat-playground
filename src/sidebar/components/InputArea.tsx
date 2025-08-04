@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Paperclip } from 'lucide-react';
 import { useApp } from '@/sidebar/contexts/AppContext';
@@ -13,7 +13,6 @@ export function InputArea({ className = '' }: InputAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const [isComposing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [hasContent, setHasContent] = useState(false);
   const editorRef = useRef<LexicalEditorRef>(null);
 
   // Auto-focus the input
@@ -36,7 +35,6 @@ export function InputArea({ className = '' }: InputAreaProps) {
 
     await actions.sendMessage(currentText.trim(), activeModelIds);
     setInputValue('');
-    setHasContent(false);
 
     // Clear and refocus the editor
     if (editorRef.current) {
@@ -50,11 +48,15 @@ export function InputArea({ className = '' }: InputAreaProps) {
       e.preventDefault();
       handleSend();
     }
+    // Remove content checking from keydown to prevent message spam
   };
 
-  // Handler to track editor content for UI purposes only
-  const handleContentChange = (content: string) => {
-    setHasContent(content.trim().length > 0);
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
   };
 
   return (
@@ -62,8 +64,8 @@ export function InputArea({ className = '' }: InputAreaProps) {
       {/* Rich Text Input */}
       <div className="relative">
         <div className="bg-gruv-dark-soft border border-gruv-medium rounded-md p-3">
-          {/* Bash-style prompt when empty */}
-          {!isFocused && !hasContent && (
+          {/* Bash-style prompt when empty and unfocused */}
+          {!isFocused && (
             <div className="absolute top-3 left-3 text-gruv-medium pointer-events-none flex items-center gap-1">
               <span className="text-gruv-light-soft">$</span>
               <div className="w-0.5 h-4 bg-gruv-aqua-bright terminal-cursor ml-1" />
@@ -72,10 +74,10 @@ export function InputArea({ className = '' }: InputAreaProps) {
           <LexicalEditor
             ref={editorRef}
             content=""
-            onChange={handleContentChange} 
+            onChange={() => {}} 
             onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             placeholder=""
             disabled={state.loading}
             className="bg-transparent text-gruv-light"

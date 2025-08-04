@@ -172,8 +172,13 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
 
     const handleChange = useCallback(
       (editorState: EditorState, editor: any) => {
-        // Don't call onChange on every keystroke - only update when explicitly requested
-        // The parent will call getTextContent() when it actually needs the content
+        // Call onChange for UI state tracking (like showing/hiding prompt)
+        // but only pass text content, not trigger message sending
+        editorState.read(() => {
+          const root = $getRoot();
+          const textContent = root.getTextContent();
+          onChange(textContent);
+        });
       },
       [onChange]
     );

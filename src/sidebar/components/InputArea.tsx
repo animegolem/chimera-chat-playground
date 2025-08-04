@@ -13,6 +13,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const [isComposing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [hasContent, setHasContent] = useState(false);
   const editorRef = useRef<LexicalEditorRef>(null);
 
   // Auto-focus the input
@@ -35,6 +36,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
 
     await actions.sendMessage(currentText.trim(), activeModelIds);
     setInputValue('');
+    setHasContent(false);
 
     // Clear and refocus the editor
     if (editorRef.current) {
@@ -50,13 +52,18 @@ export function InputArea({ className = '' }: InputAreaProps) {
     }
   };
 
+  // Handler to track editor content for UI purposes only
+  const handleContentChange = (content: string) => {
+    setHasContent(content.trim().length > 0);
+  };
+
   return (
     <div className={`border-t border-primary p-4 space-y-3 ${className}`}>
       {/* Rich Text Input */}
       <div className="relative">
         <div className="bg-gruv-dark-soft border border-gruv-medium rounded-md p-3">
           {/* Bash-style prompt when empty */}
-          {!isFocused && (
+          {!isFocused && !hasContent && (
             <div className="absolute top-3 left-3 text-gruv-medium pointer-events-none flex items-center gap-1">
               <span className="text-gruv-light-soft">$</span>
               <div className="w-0.5 h-4 bg-gruv-aqua-bright terminal-cursor ml-1" />
@@ -65,7 +72,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
           <LexicalEditor
             ref={editorRef}
             content=""
-            onChange={() => {}} 
+            onChange={handleContentChange} 
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}

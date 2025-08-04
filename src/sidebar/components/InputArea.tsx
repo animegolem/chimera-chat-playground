@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Paperclip } from 'lucide-react';
 import { useApp } from '@/sidebar/contexts/AppContext';
-import { TipTapEditor, TipTapEditorRef } from './TipTapEditor';
+import { LexicalEditor, LexicalEditorRef } from './LexicalEditor';
 
 interface InputAreaProps {
   className?: string;
@@ -13,7 +13,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const [isComposing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const editorRef = useRef<TipTapEditorRef>(null);
+  const editorRef = useRef<LexicalEditorRef>(null);
 
   // Auto-focus the input
   useEffect(() => {
@@ -60,7 +60,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
               <div className="w-0.5 h-4 bg-gruv-aqua-bright terminal-cursor ml-1" />
             </div>
           )}
-          <TipTapEditor
+          <LexicalEditor
             ref={editorRef}
             content={inputValue}
             onChange={setInputValue}

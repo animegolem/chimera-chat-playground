@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lexical Code Block Debug</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lexical@latest/Lexical.dev.js"></script>
+    <script src="https://unpkg.com/@lexical/react@latest/LexicalReact.dev.js"></script>
+    <script src="https://unpkg.com/@lexical/rich-text@latest/LexicalRichText.dev.js"></script>
+    <script src="https://unpkg.com/@lexical/code@latest/LexicalCode.dev.js"></script>
+    <script src="https://unpkg.com/@lexical/list@latest/LexicalList.dev.js"></script>
+    <script src="https://unpkg.com/@lexical/markdown@latest/LexicalMarkdown.dev.js"></script>
+    <script src="https://unpkg.com/@lexical/link@latest/LexicalLink.dev.js"></script>
+    <script src="https://unpkg.com/@lexical/mark@latest/LexicalMark.dev.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1d2021;
+            color: #ebdbb2;
+            padding: 20px;
+        }
+        .editor-container {
+            background: #282828;
+            border: 1px solid #504945;
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 200px;
+            margin-bottom: 20px;
+        }
+        .editor {
+            outline: none;
+            min-height: 180px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #ebdbb2;
+            background: transparent;
+            border: none;
+            width: 100%;
+            padding: 8px;
+        }
+        .editor:focus {
+            outline: none;
+        }
+        .instructions {
+            background: #3c3836;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        /* Gruvbox code block styling */
+        .editor code {
+            background: #1d2021;
+            border: 1px solid #504945;
+            border-radius: 6px;
+            padding: 12px;
+            display: block;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #b8bb26;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lexical Code Block Debug</h1>
+    
+    <div class="instructions">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Open browser DevTools (F12)</li>
+            <li>Go to Console tab</li>
+            <li>Install Lexical DevTools: <code>window.__LEXICAL_DEVTOOLS_GLOBAL_HOOK__</code></li>
+            <li>Type <code>```</code> + space to create code block</li>
+            <li>Add some text, press Enter within the block</li>
+            <li>Check DevTools for node structure</li>
+        </ol>
+    </div>
+
+    <div id="editor-root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        
+        const {
+            $getRoot,
+            $createParagraphNode,
+            $createTextNode,
+        } = Lexical;
+        
+        const {
+            LexicalComposer,
+            InitialConfigType
+        } = LexicalReact;
+        
+        const {
+            RichTextPlugin,
+            ContentEditable,
+            LexicalErrorBoundary,
+            OnChangePlugin,
+            HistoryPlugin,
+            MarkdownShortcutPlugin
+        } = LexicalReact;
+        
+        const {
+            ListPlugin
+        } = LexicalReact;
+        
+        const {
+            HeadingNode,
+            QuoteNode
+        } = LexicalRichText;
+        
+        const {
+            CodeNode,
+            CodeHighlightNode
+        } = LexicalCode;
+        
+        const {
+            ListNode,
+            ListItemNode
+        } = LexicalList;
+        
+        const {
+            TRANSFORMERS
+        } = LexicalMarkdown;
+        
+        const {
+            LinkNode
+        } = LexicalLink;
+        
+        const {
+            MarkNode
+        } = LexicalMark;
+
+        function DebugEditor() {
+            const initialConfig = {
+                namespace: 'DebugEditor',
+                nodes: [
+                    HeadingNode,
+                    QuoteNode,
+                    ListNode,
+                    ListItemNode,
+                    CodeNode,
+                    CodeHighlightNode,
+                    LinkNode,
+                    MarkNode,
+                ],
+                onError: (error) => {
+                    console.error('Lexical Error:', error);
+                },
+                theme: {
+                    root: 'editor',
+                    paragraph: 'editor-paragraph',
+                    code: 'editor-code',
+                    text: {
+                        bold: 'editor-text-bold',
+                        italic: 'editor-text-italic',
+                        code: 'editor-text-code',
+                    }
+                }
+            };
+
+            const handleChange = (editorState, editor) => {
+                console.log('Editor state changed');
+                editorState.read(() => {
+                    const root = $getRoot();
+                    console.log('Root node:', root);
+                    console.log('Root children:', root.getChildren());
+                    root.getChildren().forEach((child, index) => {
+                        console.log(`Child ${index}:`, child.getType(), child);
+                        if (child.getChildren) {
+                            child.getChildren().forEach((grandchild, gIndex) => {
+                                console.log(`  Grandchild ${gIndex}:`, grandchild.getType(), grandchild);
+                            });
+                        }
+                    });
+                });
+            };
+
+            return (
+                <div className="editor-container">
+                    <LexicalComposer initialConfig={initialConfig}>
+                        <RichTextPlugin
+                            contentEditable={
+                                <ContentEditable 
+                                    className="editor" 
+                                    style={{
+                                        minHeight: '180px',
+                                        outline: 'none',
+                                        padding: '8px',
+                                        color: '#ebdbb2',
+                                        fontSize: '14px',
+                                        fontFamily: 'Courier New, monospace'
+                                    }}
+                                />
+                            }
+                            placeholder={
+                                <div style={{
+                                    position: 'absolute', 
+                                    top: '8px', 
+                                    left: '8px', 
+                                    opacity: 0.5,
+                                    pointerEvents: 'none',
+                                    fontSize: '14px',
+                                    fontFamily: 'Courier New, monospace'
+                                }}>
+                                    Type ``` + space for code block...
+                                </div>
+                            }
+                            ErrorBoundary={LexicalErrorBoundary}
+                        />
+                        <HistoryPlugin />
+                        <ListPlugin />
+                        <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+                        <OnChangePlugin onChange={handleChange} />
+                    </LexicalComposer>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('editor-root'));
+        root.render(<DebugEditor />);
+    </script>
+</body>
+</html>

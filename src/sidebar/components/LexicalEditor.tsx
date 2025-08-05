@@ -112,6 +112,8 @@ function KeyDownPlugin({ onKeyDown, onContentChange }: {
   return null;
 }
 
+// Removed custom CodeBlockPlugin - using stock Lexical code block behavior
+
 function PlaceholderComponent({ children }: { children: React.ReactNode }) {
   return (
     <div className="absolute top-0 left-0 pointer-events-none text-gruv-dark-4 font-mono text-sm">
@@ -207,6 +209,19 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           code: 'bg-gruv-dark-2 text-gruv-green px-1 py-0.5 rounded font-mono text-xs',
         },
         code: 'bg-gruv-dark-0 border border-gruv-dark-4 rounded p-3 my-2 overflow-x-auto text-gruv-green font-mono text-xs',
+        codeBlock: {
+          backgroundColor: '#1d2021',
+          border: '1px solid #504945',
+          borderRadius: '6px',
+          fontFamily: 'Courier New, monospace',
+          fontSize: '12px',
+          lineHeight: '1.4',
+          margin: '8px 0',
+          padding: '12px',
+          position: 'relative',
+          color: '#b8bb26',
+          overflow: 'auto',
+        },
         quote: 'border-l-3 border-gruv-yellow pl-3 my-2 text-gruv-light-2',
         link: 'text-gruv-blue underline hover:text-gruv-light cursor-pointer',
         mark: 'bg-gruv-yellow text-gruv-dark-0 px-1 rounded',

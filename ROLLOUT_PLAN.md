@@ -85,9 +85,16 @@
 
 11. **Core Components**
     - Chat message list
-    - Model toggle pills
-    - TipTap input editor
+    - Model toggle pills  
+    - Lexical input editor (migrated from TipTap due to markdown shortcut issues)
     - Settings dialog
+
+11.5. **Unified Text Rendering System**
+    - Code block support in Lexical editor (``` markdown syntax)
+    - Syntax highlighting for code blocks (Prism.js integration)
+    - Shared CSS system for input/output formatting consistency
+    - ContentSanitizer integration for AI response code highlighting
+    - HTML→Markdown conversion for copy functionality
 
 12. **State Management**
     - Implement useReducer for complex state

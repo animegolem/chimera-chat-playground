@@ -15,6 +15,8 @@ export default defineConfig({
         background: resolve(__dirname, 'src/background/index.ts'),
         // Content script
         content: resolve(__dirname, 'src/content/index.ts'),
+        // Debug page
+        debug: resolve(__dirname, 'src/debug.tsx'),
       },
       output: {
         entryFileNames: '[name].js',

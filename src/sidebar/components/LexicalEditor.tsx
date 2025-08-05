@@ -126,15 +126,13 @@ function LineNumberPlugin() {
       codeBlocks.forEach((block, index) => {
         // Count <br> tags + 1 (for first line) - this is the most reliable method for Lexical
         const brTags = block.querySelectorAll('br').length;
+        const textNodes = block.querySelectorAll('span').length;
         
-        // Check if the last element is an empty BR (cursor on empty line)
-        const lastChild = block.lastChild;
-        const endsWithEmptyBR = lastChild && lastChild.nodeName === 'BR';
+        // If there are text spans, we have content, count normally
+        // If no text spans but br tags exist, we're on empty lines
+        const lineCount = textNodes > 0 ? brTags + 1 : Math.max(1, brTags);
         
-        // If it ends with empty BR, that line doesn't count until it has content
-        const lineCount = endsWithEmptyBR ? Math.max(1, brTags) : brTags + 1;
-        
-        console.log(`Block ${index}: ${brTags} br tags, endsWithEmptyBR: ${endsWithEmptyBR} = ${lineCount} lines`);
+        console.log(`Block ${index}: ${brTags} br tags, ${textNodes} text spans = ${lineCount} lines`);
         
         const numbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
         console.log(`Setting gutter: "${numbers}"`);

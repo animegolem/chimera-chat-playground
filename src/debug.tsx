@@ -9,7 +9,15 @@ function DebugApp() {
   }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    console.log('Key pressed:', event.key);
+    console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey);
+    
+    // Test Ctrl+Enter functionality
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      console.log('🚀 Ctrl+Enter detected - this should trigger send!');
+      event.preventDefault();
+      alert('Ctrl+Enter works! This would send the message.');
+      return;
+    }
     
     // Log editor state on every keystroke for debugging
     setTimeout(() => {
@@ -49,7 +57,7 @@ function DebugApp() {
       </div>
       
       <div className="bg-gruv-dark-1 p-3 rounded mt-5 text-xs">
-        <strong className="text-gruv-orange">Status:</strong> Using your existing LexicalEditor component. 
+        <strong className="text-gruv-orange">Status:</strong> 🔥 TESTING BUILD UPDATE v5 🔥 - Using your existing LexicalEditor component. 
         Check console for detailed node structure on every keystroke.
       </div>
     </div>

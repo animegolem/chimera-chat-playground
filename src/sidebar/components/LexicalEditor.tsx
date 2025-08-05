@@ -10,12 +10,13 @@ import { $generateHtmlFromNodes } from '@lexical/html';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
-import { CodeHighlightNode, CodeNode } from '@lexical/code';
+import { CodeHighlightNode, CodeNode, registerCodeHighlighting } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
 import { MarkNode } from '@lexical/mark';
 import { TRANSFORMERS } from '@lexical/markdown';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { COMMAND_PRIORITY_LOW } from 'lexical';
 
 interface LexicalEditorProps {
   content: string;
@@ -47,7 +48,8 @@ function MyCustomAutoFocusPlugin({ shouldFocus = true }: { shouldFocus?: boolean
   return null;
 }
 
-function KeyDownPlugin({ onKeyDown, onContentChange }: { 
+// Proper command-based plugin that doesn't interfere with CodeNode behavior
+function CommandPlugin({ onKeyDown, onContentChange }: { 
   onKeyDown?: (event: KeyboardEvent) => void;
   onContentChange?: (content?: string) => void;
 }) {
@@ -56,63 +58,106 @@ function KeyDownPlugin({ onKeyDown, onContentChange }: {
   useEffect(() => {
     if (!onKeyDown && !onContentChange) return;
 
-    let cleanup: (() => void) | null = null;
-    
-    console.log('[LexicalEditor] Registering KeyDown plugin', { 
-      timestamp: Date.now(), 
-      handlerRef: onKeyDown?.toString().substring(0, 50) + '...'
-    });
+    const removeCommands: (() => void)[] = [];
 
-    const removeListener = editor.registerRootListener((rootElement) => {
-      // Clean up any existing listener first
-      if (cleanup) {
-        console.log('[LexicalEditor] Cleaning up previous listener');
-        cleanup();
-        cleanup = null;
-      }
+    // Handle special key combinations that need custom behavior
+    if (onKeyDown) {
+      const removeKeyCommand = editor.registerCommand(
+        'keydown' as any,
+        (event: KeyboardEvent) => {
+          // Only handle specific cases that need custom behavior
+          // Let Lexical handle normal editing (including Enter in code blocks)
+          if (event.ctrlKey || event.metaKey || event.altKey) {
+            onKeyDown(event);
+            // Don't prevent default - let other handlers run too
+          }
+          return false; // Always allow other handlers to process
+        },
+        COMMAND_PRIORITY_LOW // Low priority to not interfere with built-ins
+      );
+      removeCommands.push(removeKeyCommand);
+    }
 
-      if (rootElement !== null) {
-        const cleanupFunctions: (() => void)[] = [];
-        
-        if (onKeyDown) {
-          console.log('[LexicalEditor] Adding keydown listener to root element');
-          rootElement.addEventListener('keydown', onKeyDown);
-          cleanupFunctions.push(() => {
-            console.log('[LexicalEditor] Removing keydown listener from root element');
-            rootElement.removeEventListener('keydown', onKeyDown);
-          });
-        }
-        
-        if (onContentChange) {
-          console.log('[LexicalEditor] Adding paste listener to root element');
-          const handlePaste = () => {
-            // Delay to allow paste content to be processed
-            setTimeout(onContentChange, 50);
-          };
-          rootElement.addEventListener('paste', handlePaste);
-          cleanupFunctions.push(() => {
-            console.log('[LexicalEditor] Removing paste listener from root element');
-            rootElement.removeEventListener('paste', handlePaste);
-          });
-        }
-        
-        cleanup = () => {
-          cleanupFunctions.forEach(fn => fn());
-        };
-      }
-    });
+    // Handle paste events for content change detection
+    if (onContentChange) {
+      const removePasteCommand = editor.registerCommand(
+        'paste' as any,
+        () => {
+          setTimeout(onContentChange, 50);
+          return false; // Don't prevent default paste behavior
+        },
+        COMMAND_PRIORITY_LOW
+      );
+      removeCommands.push(removePasteCommand);
+    }
 
     return () => {
-      console.log('[LexicalEditor] KeyDown plugin cleanup effect running');
-      cleanup?.();
-      removeListener();
+      removeCommands.forEach(fn => fn());
     };
   }, [editor, onKeyDown, onContentChange]);
 
   return null;
 }
 
-// Removed custom CodeBlockPlugin - using stock Lexical code block behavior
+// Code highlighting plugin for proper code block support
+function CodeHighlightPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return registerCodeHighlighting(editor);
+  }, [editor]);
+
+  return null;
+}
+
+// Line numbering plugin for code blocks
+function LineNumberPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    const updateLineNumbers = () => {
+      const codeBlocks = document.querySelectorAll('.lexical-code-block');
+      
+      // Only log and process if there are actually code blocks
+      if (codeBlocks.length === 0) return;
+      
+      console.log(`🔢 Updating line numbers for ${codeBlocks.length} code blocks`);
+      
+      codeBlocks.forEach((block, index) => {
+        // Count <br> tags + 1 (for first line) - this is the most reliable method for Lexical
+        const brTags = block.querySelectorAll('br').length;
+        
+        // Check if the last element is an empty BR (cursor on empty line)
+        const lastChild = block.lastChild;
+        const endsWithEmptyBR = lastChild && lastChild.nodeName === 'BR';
+        
+        // If it ends with empty BR, that line doesn't count until it has content
+        const lineCount = endsWithEmptyBR ? Math.max(1, brTags) : brTags + 1;
+        
+        console.log(`Block ${index}: ${brTags} br tags, endsWithEmptyBR: ${endsWithEmptyBR} = ${lineCount} lines`);
+        
+        const numbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
+        console.log(`Setting gutter: "${numbers}"`);
+        (block as HTMLElement).setAttribute('data-gutter', numbers);
+        
+        // Check if it was actually set
+        const actualGutter = (block as HTMLElement).getAttribute('data-gutter');
+        console.log(`Verification: actual gutter value: "${actualGutter}"`);
+      });
+    };
+
+    const unregister = editor.registerUpdateListener(() => {
+      setTimeout(updateLineNumbers, 0);
+    });
+
+    // Initial update
+    setTimeout(updateLineNumbers, 0);
+
+    return unregister;
+  }, [editor]);
+
+  return null;
+}
 
 function PlaceholderComponent({ children }: { children: React.ReactNode }) {
   return (
@@ -208,20 +253,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           strikethrough: 'line-through',
           code: 'bg-gruv-dark-2 text-gruv-green px-1 py-0.5 rounded font-mono text-xs',
         },
-        code: 'bg-gruv-dark-0 border border-gruv-dark-4 rounded p-3 my-2 overflow-x-auto text-gruv-green font-mono text-xs',
-        codeBlock: {
-          backgroundColor: '#1d2021',
-          border: '1px solid #504945',
-          borderRadius: '6px',
-          fontFamily: 'Courier New, monospace',
-          fontSize: '12px',
-          lineHeight: '1.4',
-          margin: '8px 0',
-          padding: '12px',
-          position: 'relative',
-          color: '#b8bb26',
-          overflow: 'auto',
-        },
+        code: 'lexical-code-block bg-gruv-dark-0 border border-gruv-dark-4 rounded my-2 overflow-x-auto text-gruv-green block whitespace-pre-wrap relative',
         quote: 'border-l-3 border-gruv-yellow pl-3 my-2 text-gruv-light-2',
         link: 'text-gruv-blue underline hover:text-gruv-light cursor-pointer',
         mark: 'bg-gruv-yellow text-gruv-dark-0 px-1 rounded',
@@ -280,9 +312,11 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           />
           <HistoryPlugin />
           <ListPlugin />
+          <CodeHighlightPlugin />
+          <LineNumberPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
-          <KeyDownPlugin onKeyDown={onKeyDown} onContentChange={onChange} />
+          <CommandPlugin onKeyDown={onKeyDown} onContentChange={onChange} />
           <EditorRefPlugin editorRef={internalRef} />
           <MyCustomAutoFocusPlugin />
         </LexicalComposer>
@@ -298,6 +332,51 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           .PlaygroundEditorTheme__paragraph {
             margin: 0;
             position: relative;
+          }
+          
+          /* Code block with line numbers - playground style */
+          .lexical-code-block {
+            font-family: Menlo, Consolas, Monaco, monospace;
+            display: block;
+            padding: 8px 8px 8px 52px;
+            line-height: 1.53;
+            font-size: 13px;
+            margin: 8px 0;
+            overflow-x: auto;
+            position: relative;
+            tab-size: 2;
+            white-space: pre;
+          }
+          
+          .lexical-code-block::before {
+            content: attr(data-gutter);
+            position: absolute;
+            background-color: #282828;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            border-right: 1px solid #504945;
+            padding: 8px;
+            color: #665c54;
+            white-space: pre-wrap;
+            text-align: right;
+            min-width: 36px;
+            font-family: Menlo, Consolas, Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.53;
+            box-sizing: border-box;
+          }
+          
+          /* Ensure consistent blockquote styling */
+          .border-l-3 {
+            border-left-width: 3px !important;
+            border-left-style: solid !important;
+          }
+          
+          /* Fix potential outline issues in extension */
+          .lexical-code-block {
+            outline: none !important;
+            border: 1px solid #504945 !important;
           }
         `}</style>
       </div>

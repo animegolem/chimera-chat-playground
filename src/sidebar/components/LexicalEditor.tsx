@@ -290,42 +290,6 @@ function PlaceholderComponent({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EditorRefPlugin({
-  editorRef,
-}: {
-  editorRef: React.MutableRefObject<{
-    focus: () => void;
-    clear: () => void;
-    getEditor: () => any;
-    getText: () => string;
-  } | null>;
-}) {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.focus = () => editor.focus();
-      editorRef.current.clear = () => {
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-        });
-      };
-      editorRef.current.getEditor = () => editor;
-      editorRef.current.getText = () => {
-        let text = '';
-        editor.getEditorState().read(() => {
-          const root = $getRoot();
-          text = root.getTextContent();
-        });
-        return text;
-      };
-    }
-  }, [editor, editorRef]);
-
-  return null;
-}
-
 export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
   (
     {
@@ -405,26 +369,35 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
       [onChange]
     );
 
-    // Create a ref object for the EditorRefPlugin
-    const internalRef = React.useRef<{
-      focus: () => void;
-      clear: () => void;
-      getEditor: () => any;
-      getText: () => string;
-    } | null>({
-      focus: () => {},
-      clear: () => {},
-      getEditor: () => null,
-      getText: () => '',
-    });
+    // Internal component to handle ref methods using standard patterns
+    const RefHandler = () => {
+      const [editor] = useLexicalComposerContext();
 
-    // Expose methods for parent component
-    useImperativeHandle(ref, () => ({
-      focus: () => internalRef.current?.focus(),
-      clear: () => internalRef.current?.clear(),
-      getEditor: () => internalRef.current?.getEditor(),
-      getText: () => internalRef.current?.getText() || '',
-    }));
+      useImperativeHandle(
+        ref,
+        () => ({
+          focus: () => editor.focus(),
+          clear: () => {
+            editor.update(() => {
+              const root = $getRoot();
+              root.clear();
+            });
+          },
+          getEditor: () => editor,
+          getText: () => {
+            let text = '';
+            editor.getEditorState().read(() => {
+              const root = $getRoot();
+              text = root.getTextContent();
+            });
+            return text;
+          },
+        }),
+        [editor]
+      );
+
+      return null;
+    };
 
     return (
       <div className={`relative ${className}`}>
@@ -479,8 +452,8 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <OnChangePlugin onChange={handleChange} />
           <KeyboardShortcutPlugin onKeyDown={onKeyDown} />
           <ContentChangePlugin onContentChange={onChange} />
-          <EditorRefPlugin editorRef={internalRef} />
           <AutoFocusPlugin />
+          <RefHandler />
         </LexicalComposer>
       </div>
     );

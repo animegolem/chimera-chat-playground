@@ -13,7 +13,15 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { EditorState, $getRoot, $getSelection } from 'lexical';
+import {
+  EditorState,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  $createParagraphNode,
+  KEY_ENTER_COMMAND,
+  COMMAND_PRIORITY_HIGH,
+} from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { ListItemNode, ListNode } from '@lexical/list';
@@ -23,6 +31,7 @@ import {
   CodeHighlightNode,
   CodeNode,
   registerCodeHighlighting,
+  $isCodeNode,
 } from '@lexical/code';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
 import { LinkPlugin as LexicalLinkPlugin } from '@lexical/react/LexicalLinkPlugin';
@@ -173,6 +182,91 @@ function CodeHighlightPlugin() {
 
   useEffect(() => {
     return registerCodeHighlighting(editor);
+  }, [editor]);
+
+  return null;
+}
+
+// Smart code block escape plugin - exits on 3+ empty lines
+function CodeBlockEscapePlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event: KeyboardEvent | null) => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          return false;
+        }
+
+        // Find if we're in a code block
+        let node = selection.anchor.getNode();
+        let codeBlock: CodeNode | null = null;
+
+        // Walk up the tree to find a CodeNode
+        while (node) {
+          if ($isCodeNode(node)) {
+            codeBlock = node;
+            break;
+          }
+          node = node.getParent();
+        }
+
+        if (!codeBlock) {
+          return false;
+        }
+
+        // Get all children of the code block
+        const children = codeBlock.getChildren();
+        if (children.length < 3) {
+          return false;
+        }
+
+        // Count trailing whitespace-only lines
+        let emptyLineCount = 0;
+        for (let i = children.length - 1; i >= 0; i--) {
+          const child = children[i];
+          const text = child.getTextContent();
+
+          // Check if this line is only whitespace
+          if (text.trim() === '' && text.length > 0) {
+            emptyLineCount++;
+          } else if (text.length === 0) {
+            // Empty text nodes also count
+            emptyLineCount++;
+          } else {
+            // Found non-empty content, stop counting
+            break;
+          }
+        }
+
+        // If we have 2+ trailing empty lines, trigger escape
+        if (emptyLineCount >= 2) {
+          event?.preventDefault();
+
+          // Remove the trailing empty nodes
+          for (let i = 0; i < emptyLineCount; i++) {
+            const lastChild = codeBlock.getLastChild();
+            if (lastChild) {
+              lastChild.remove();
+            }
+          }
+
+          // Create new paragraph after code block
+          const paragraph = $createParagraphNode();
+          codeBlock.insertAfter(paragraph);
+
+          // Focus the new paragraph
+          paragraph.selectStart();
+
+          return true; // Prevent default Enter behavior
+        }
+
+        return false; // Let normal Enter handling proceed
+      },
+      COMMAND_PRIORITY_HIGH // High priority to intercept before default handlers
+    );
   }, [editor]);
 
   return null;
@@ -475,6 +569,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           />
           <ClickableLinkPlugin disabled={disabled} />
           <CodeHighlightPlugin />
+          <CodeBlockEscapePlugin />
           <LineNumberPlugin />
           <HorizontalRulePlugin />
           <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />

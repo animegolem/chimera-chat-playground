@@ -58,6 +58,7 @@ import {
   resizeImage,
   ACCEPTABLE_IMAGE_TYPES,
 } from '@/sidebar/utils/image-utils';
+import styles from './LexicalEditor.module.css';
 
 // Email regex for AutoLinkPlugin
 const EMAIL_REGEX =
@@ -282,7 +283,9 @@ function LineNumberPlugin() {
 
   useEffect(() => {
     const updateLineNumbers = () => {
-      const codeBlocks = document.querySelectorAll('.lexical-code-block');
+      const codeBlocks = document.querySelectorAll(
+        `[class*="${styles.codeBlock}"]`
+      );
 
       // Only log and process if there are actually code blocks
       if (codeBlocks.length === 0) return;
@@ -433,8 +436,8 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           strikethrough: 'line-through',
           code: 'bg-gruv-dark-2 text-gruv-green px-1 py-0.5 rounded font-mono text-xs',
         },
-        code: 'lexical-code-block bg-gruv-dark-0 border border-gruv-dark-4 rounded my-2 overflow-x-auto text-gruv-green block whitespace-pre-wrap relative',
-        quote: 'border-l-3 border-gruv-yellow pl-3 my-2 text-gruv-light-2',
+        code: `${styles.codeBlock} bg-gruv-dark-0 border border-gruv-dark-4 rounded my-2 overflow-x-auto text-gruv-green block whitespace-pre-wrap relative`,
+        quote: `${styles.borderL3} border-gruv-yellow pl-3 my-2 text-gruv-light-2`,
         link: 'text-gruv-blue underline hover:text-gruv-light cursor-pointer',
         mark: 'bg-gruv-yellow text-gruv-dark-0 px-1 rounded',
         hr: 'border-0 border-t border-gruv-dark-4 my-4',
@@ -530,65 +533,6 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <EditorRefPlugin editorRef={internalRef} />
           <AutoFocusPlugin />
         </LexicalComposer>
-
-        {/* Custom Gruvbox styling */}
-        <style>{`
-          .PlaygroundEditorTheme__ltr {
-            text-align: left;
-          }
-          .PlaygroundEditorTheme__rtl {
-            text-align: right;
-          }
-          .PlaygroundEditorTheme__paragraph {
-            margin: 0;
-            position: relative;
-          }
-          
-          /* Code block with line numbers - playground style */
-          .lexical-code-block {
-            font-family: Menlo, Consolas, Monaco, monospace;
-            display: block;
-            padding: 8px 8px 8px 52px;
-            line-height: 1.53;
-            font-size: 13px;
-            margin: 8px 0;
-            overflow-x: auto;
-            position: relative;
-            tab-size: 2;
-            white-space: pre;
-          }
-          
-          .lexical-code-block::before {
-            content: attr(data-gutter);
-            position: absolute;
-            background-color: #282828;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            border-right: 1px solid #504945;
-            padding: 8px;
-            color: #665c54;
-            white-space: pre-wrap;
-            text-align: right;
-            min-width: 36px;
-            font-family: Menlo, Consolas, Monaco, monospace;
-            font-size: 13px;
-            line-height: 1.53;
-            box-sizing: border-box;
-          }
-          
-          /* Ensure consistent blockquote styling */
-          .border-l-3 {
-            border-left-width: 3px !important;
-            border-left-style: solid !important;
-          }
-          
-          /* Fix potential outline issues in extension */
-          .lexical-code-block {
-            outline: none !important;
-            border: 1px solid #504945 !important;
-          }
-        `}</style>
       </div>
     );
   }

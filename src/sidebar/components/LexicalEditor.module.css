@@ -1,0 +1,57 @@
+/* Lexical Editor CSS Module - Extracted from inline styles */
+/* Gruvbox theming for consistent terminal aesthetic */
+
+/* Text direction support */
+.ltr {
+  text-align: left;
+}
+
+.rtl {
+  text-align: right;
+}
+
+.paragraph {
+  margin: 0;
+  position: relative;
+}
+
+/* Code block with line numbers - gruvbox style */
+.codeBlock {
+  font-family: Menlo, Consolas, Monaco, monospace;
+  display: block;
+  padding: 8px 8px 8px 52px;
+  line-height: 1.53;
+  font-size: 13px;
+  margin: 8px 0;
+  overflow-x: auto;
+  position: relative;
+  tab-size: 2;
+  white-space: pre;
+  outline: none !important;
+  border: 1px solid #504945 !important;
+}
+
+.codeBlock::before {
+  content: attr(data-gutter);
+  position: absolute;
+  background-color: #282828;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid #504945;
+  padding: 8px;
+  color: #665c54;
+  white-space: pre-wrap;
+  text-align: right;
+  min-width: 36px;
+  font-family: Menlo, Consolas, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.53;
+  box-sizing: border-box;
+}
+
+/* Blockquote consistent styling */
+.borderL3 {
+  border-left-width: 3px !important;
+  border-left-style: solid !important;
+}

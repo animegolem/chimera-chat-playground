@@ -59,6 +59,8 @@ import {
   ACCEPTABLE_IMAGE_TYPES,
 } from '@/sidebar/utils/image-utils';
 import styles from './LexicalEditor.module.css';
+import { KeyboardShortcutPlugin } from '@/sidebar/plugins/KeyboardShortcutPlugin';
+import { ContentChangePlugin } from '@/sidebar/plugins/ContentChangePlugin';
 
 // Email regex for AutoLinkPlugin
 const EMAIL_REGEX =
@@ -81,60 +83,6 @@ export interface LexicalEditorRef {
   clear: () => void;
   getEditor: () => any;
   getText: () => string;
-}
-
-// Proper command-based plugin that doesn't interfere with CodeNode behavior
-function CommandPlugin({
-  onKeyDown,
-  onContentChange,
-}: {
-  onKeyDown?: (event: KeyboardEvent) => void;
-  onContentChange?: (content?: string) => void;
-}) {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    if (!onKeyDown && !onContentChange) return;
-
-    const removeCommands: (() => void)[] = [];
-
-    // Handle special key combinations that need custom behavior
-    if (onKeyDown) {
-      const removeKeyCommand = editor.registerCommand(
-        'keydown' as any,
-        (event: KeyboardEvent) => {
-          // Only handle specific cases that need custom behavior
-          // Let Lexical handle normal editing (including Enter in code blocks)
-          if (event.ctrlKey || event.metaKey || event.altKey) {
-            onKeyDown(event);
-            // Don't prevent default - let other handlers run too
-          }
-          return false; // Always allow other handlers to process
-        },
-        COMMAND_PRIORITY_LOW // Low priority to not interfere with built-ins
-      );
-      removeCommands.push(removeKeyCommand);
-    }
-
-    // Handle paste events for content change detection
-    if (onContentChange) {
-      const removePasteCommand = editor.registerCommand(
-        'paste' as any,
-        () => {
-          setTimeout(onContentChange, 50);
-          return false; // Don't prevent default paste behavior
-        },
-        COMMAND_PRIORITY_LOW
-      );
-      removeCommands.push(removePasteCommand);
-    }
-
-    return () => {
-      removeCommands.forEach((fn) => fn());
-    };
-  }, [editor, onKeyDown, onContentChange]);
-
-  return null;
 }
 
 // Code highlighting plugin for proper code block support
@@ -529,7 +477,8 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
-          <CommandPlugin onKeyDown={onKeyDown} onContentChange={onChange} />
+          <KeyboardShortcutPlugin onKeyDown={onKeyDown} />
+          <ContentChangePlugin onContentChange={onChange} />
           <EditorRefPlugin editorRef={internalRef} />
           <AutoFocusPlugin />
         </LexicalComposer>

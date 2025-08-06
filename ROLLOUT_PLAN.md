@@ -72,10 +72,11 @@
    - Implement reliable message passing
    - Add error handling and logging
 
-## Phase 3: UI Foundation 
+## Phase 3: UI Foundation ✅ NEARLY COMPLETE
 ### Objectives
-- React sidebar application
-- Component architecture
+- React sidebar application ✅
+- Component architecture ✅
+- Smart paste handling (Phase 3.6 - IAC-111)
 
 ### Tasks
 10. **React App Structure**
@@ -89,12 +90,20 @@
     - Lexical input editor (migrated from TipTap due to markdown shortcut issues)
     - Settings dialog
 
-11.5. **Unified Text Rendering System**
-    - Code block support in Lexical editor (``` markdown syntax)
-    - Syntax highlighting for code blocks (Prism.js integration)
-    - Shared CSS system for input/output formatting consistency
-    - ContentSanitizer integration for AI response code highlighting
-    - HTML→Markdown conversion for copy functionality
+11.5. **Unified Text Rendering System** DONE !!!
+    - Code block support in Lexical editor (``` markdown syntax) ✅
+    - Smart code block escape functionality (3+ empty lines auto-exit) ✅
+    - Syntax highlighting for code blocks (Prism.js integration) ✅
+    - Shared CSS system for input/output formatting consistency ✅
+    - ContentSanitizer integration for AI response code highlighting ✅
+    - HTML→Markdown conversion for copy functionality ✅
+
+11.6. **Smart Paste Handling** NEW - Phase 3.6
+    - Context-aware paste formatting plugin (IAC-111)
+    - Detect paste context: general editor vs code blocks
+    - Intelligent content routing: markdown parsing vs raw text preservation
+    - Integration with ContentSanitizer for security
+    - Critical for Phase 4 LLM integration UX
 
 12. **State Management**
     - Implement useReducer for complex state
@@ -168,10 +177,11 @@
 ## Linear Issue Structure
 
 ### Epic: Firefox Bootstrap MVP
-- **P0: Foundation** (Issues 1-3)
-- **P1: Build System** (Issues 4-6)
+- **P0: Foundation** (Issues 1-3) ✅ COMPLETE
+- **P1: Build System** (Issues 4-6) ✅ COMPLETE  
 - **P2: Core Architecture** (Issues 7-9)
-- **P3: UI Development** (Issues 10-12)
+- **P3: UI Development** (Issues 10-12) ✅ NEARLY COMPLETE
+  - **P3.6: Smart Paste** (Issue 111) - Critical bridge to Phase 4
 - **P4: LLM Features** (Issues 13-15)
 - **P5: Advanced Features** (Issues 16-18)
 - **P6: Polish** (Issues 19-21)

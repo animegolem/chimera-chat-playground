@@ -31,10 +31,6 @@ export function InputArea({ className = '' }: InputAreaProps) {
   }, []);
 
   const handleSend = useCallback(async () => {
-    console.log('[InputArea] handleSend called', {
-      timestamp: Date.now(),
-      functionId: Math.random().toString(36).substring(2, 11),
-    });
 
     // Get current text from editor instead of state
     const currentText = editorRef.current?.getText() || '';
@@ -60,10 +56,6 @@ export function InputArea({ className = '' }: InputAreaProps) {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      console.log('[InputArea] handleKeyDown called', {
-        timestamp: Date.now(),
-        functionId: Math.random().toString(36).substring(2, 11),
-      });
 
       if (e.key === 'Enter' && e.ctrlKey && !isComposing) {
         e.preventDefault();
@@ -84,7 +76,6 @@ export function InputArea({ className = '' }: InputAreaProps) {
 
   // Handle image drops - for now, just show a notification
   const handleImageDrop = useCallback((base64: string, fileName: string) => {
-    console.log('📸 Image dropped:', fileName, 'Base64 length:', base64.length);
 
     // Calculate approximate token usage (width * height / 750)
     // For now, we'll estimate based on base64 size
@@ -97,13 +88,11 @@ export function InputArea({ className = '' }: InputAreaProps) {
   }, []);
 
   const handleFocus = useCallback(() => {
-    console.log('[InputArea] handleFocus called', { timestamp: Date.now() });
     setIsFocused(true);
     checkContent();
   }, [checkContent]);
 
   const handleBlur = useCallback(() => {
-    console.log('[InputArea] handleBlur called', { timestamp: Date.now() });
     setIsFocused(false);
     checkContent();
   }, [checkContent]);
@@ -170,7 +159,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
               state.activeModels.length === 0 ||
               !hasContent
             }
-            className="bg-gruv-medium hover:bg-gruv-aqua text-gruv-light hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gruv-medium hover:bg-gruv-green text-gruv-light hover:text-gruv-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state.loading ? (
               <span className="hourglass-loading text-sm"></span>

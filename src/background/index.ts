@@ -28,7 +28,6 @@ async function initialize() {
   if (existingModels.length === 0) {
     const defaultModels = Object.values(DEFAULT_MODELS);
     await storage.saveModels(defaultModels);
-    console.log('Initialized default models');
   }
 }
 

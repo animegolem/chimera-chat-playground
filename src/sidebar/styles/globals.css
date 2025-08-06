@@ -130,4 +130,50 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-gruv-medium-soft;
   }
+
+  /* Lexical editor styles - following playground pattern */
+  .editor-code {
+    background-color: #1d2021;
+    border: 1px solid #504945;
+    border-radius: 0.25rem;
+    color: #b8bb26;
+    display: block;
+    font-family: Menlo, Consolas, Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.53;
+    margin: 8px 0;
+    overflow-x: auto;
+    padding: 8px 8px 8px 52px;
+    position: relative;
+    tab-size: 2;
+    white-space: pre-wrap;
+  }
+
+  .editor-code::before {
+    content: attr(data-gutter);
+    position: absolute;
+    background-color: #282828;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-right: 1px solid #504945;
+    padding: 8px;
+    color: #665c54;
+    white-space: pre-wrap;
+    text-align: right;
+    min-width: 36px;
+    font-family: Menlo, Consolas, Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.53;
+    box-sizing: border-box;
+  }
+
+  .editor-quote {
+    border-left-color: #fabd2f;
+    border-left-width: 3px;
+    border-left-style: solid;
+    color: #d5c4a1;
+    margin: 8px 0;
+    padding-left: 12px;
+  }
 }

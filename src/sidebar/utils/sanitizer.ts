@@ -68,13 +68,10 @@ export class ContentSanitizer {
       return '';
     }
 
-    // Debug logging
-    console.log('Sanitizing AI content:', content);
 
     try {
       // Step 1: Process markdown to HTML with marked
       const htmlContent = this.processMarkdown(content);
-      console.log('After markdown processing:', htmlContent);
 
       // Step 2: Sanitize HTML with DOMPurify - simplified config
       const sanitized = DOMPurify.sanitize(htmlContent, {
@@ -99,7 +96,6 @@ export class ContentSanitizer {
         ],
       });
 
-      console.log('After sanitization:', sanitized);
       return sanitized;
     } catch (error) {
       console.error('Error sanitizing content:', error);

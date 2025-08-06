@@ -847,3 +847,9 @@ export default FirefoxBootstrap;
   scissors matching the "copied lines" thing if we can
    do that as the unicode not the emoji (the lines can
    stay the emoji)
+
+
+* Lines are not being counted correctly --maybe just make it characters for the web app. Counting lines in an actual IDE will be much more trivial.
+- The 'CTRL+ENTER' button shows a brighter white but it'd be nicer if it used the same green as the files + line counter on hover.
+- Possible to implement a 'ctrl+c' command to clear the text box like a terminal?
+- There is a world where it makes sense to make an MCP that can use docling to write out notes etc.

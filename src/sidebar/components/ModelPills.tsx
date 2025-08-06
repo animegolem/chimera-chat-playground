@@ -27,7 +27,7 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
           onToggle={() => actions.toggleModel(model.id)}
           onRightClick={() => {
             // TODO: Open model settings dialog
-            console.log('Open settings for:', model.name);
+            // TODO: Implement settings dialog
           }}
         />
       ))}

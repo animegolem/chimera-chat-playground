@@ -201,7 +201,6 @@ export function AppProvider({ children }: AppProviderProps) {
         switch (message.type) {
           case 'TAB_GROUP_NAMED':
             // Could show a notification or update UI
-            console.log('Tab group named:', message.name);
             break;
 
           case 'CONTEXT_MENU_SELECTION':
@@ -301,11 +300,6 @@ export function AppProvider({ children }: AppProviderProps) {
     }
 
     sendDedupeMap.current.set(sendId, Date.now());
-    console.log('[AppContext] sendMessage called', {
-      sendId,
-      contentLength: content.length,
-      currentSending: state.sending,
-    });
 
     try {
       dispatch({ type: 'SET_SENDING', sending: true });

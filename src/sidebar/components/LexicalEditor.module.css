@@ -55,3 +55,29 @@
   border-left-width: 3px !important;
   border-left-style: solid !important;
 }
+
+/* Global class for compatibility */
+:global(.border-l-3) {
+  border-left-width: 3px !important;
+  border-left-style: solid !important;
+}
+/* Global rule for line numbering compatibility with LineNumberPlugin */
+:global(.lexical-code-block)::before {
+  content: attr(data-gutter);
+  position: absolute;
+  background-color: #282828;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid #504945;
+  padding: 8px;
+  color: #665c54;
+  white-space: pre-wrap;
+  text-align: right;
+  min-width: 36px;
+  font-family: Menlo, Consolas, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.53;
+  box-sizing: border-box;
+}
+

@@ -1,7 +1,0 @@
-#+title: AI Automation Notes
-#+date: <2025-08-02 Sat> 
-
-* Obsidian MCP 
-** Features 
-- 
-    1. 

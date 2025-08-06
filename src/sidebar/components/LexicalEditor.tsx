@@ -1,22 +1,124 @@
-import React, { useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { InitialConfigType, LexicalComposer } from '@lexical/react/LexicalComposer';
+import React, {
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+  useEffect,
+} from 'react';
+import {
+  InitialConfigType,
+  LexicalComposer,
+} from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { EditorState, $getRoot } from 'lexical';
+import { EditorState, $getRoot, $getSelection } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
-import { CodeHighlightNode, CodeNode, registerCodeHighlighting } from '@lexical/code';
-import { LinkNode } from '@lexical/link';
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import {
+  CodeHighlightNode,
+  CodeNode,
+  registerCodeHighlighting,
+} from '@lexical/code';
+import { LinkNode, AutoLinkNode } from '@lexical/link';
+import { LinkPlugin as LexicalLinkPlugin } from '@lexical/react/LexicalLinkPlugin';
+import {
+  AutoLinkPlugin,
+  createLinkMatcherWithRegExp,
+} from '@lexical/react/LexicalAutoLinkPlugin';
+import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { MarkNode } from '@lexical/mark';
-import { TRANSFORMERS } from '@lexical/markdown';
+import { TRANSFORMERS, ElementTransformer } from '@lexical/markdown';
+import { $createHorizontalRuleNode, $isHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
+import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin';
+import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
+import { DRAG_DROP_PASTE } from '@lexical/rich-text';
+import { isMimeType, mediaFileReader } from '@lexical/utils';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { COMMAND_PRIORITY_LOW } from 'lexical';
+
+// URL validation utility from Lexical playground
+const validateUrl = (url: string): boolean => {
+  const urlRegExp = new RegExp(
+    /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=+$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=+$,\w]+@)[A-Za-z0-9.-]+)((?:\/[+~%/.\w-_]*)?\??(?:[-+=&;%@.\w_]*)#?(?:[\w]*))?)/
+  );
+  return url === 'https://' || urlRegExp.test(url);
+};
+
+// Email regex for AutoLinkPlugin
+const EMAIL_REGEX =
+  /(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/;
+
+// Horizontal Rule transformer (missing from default TRANSFORMERS)
+const HR_TRANSFORMER: ElementTransformer = {
+  dependencies: [HorizontalRuleNode],
+  export: (node) => {
+    return $isHorizontalRuleNode(node) ? '***' : null;
+  },
+  regExp: /^(---|\*\*\*|___)\s?$/,
+  replace: (parentNode, _1, _2, isImport) => {
+    const line = $createHorizontalRuleNode();
+    if (isImport || parentNode.getNextSibling() != null) {
+      parentNode.replace(line);
+    } else {
+      parentNode.insertBefore(line);
+    }
+    line.selectNext();
+  },
+  type: 'element',
+};
+
+// Combined transformers including HR
+const EXTENDED_TRANSFORMERS = [HR_TRANSFORMER, ...TRANSFORMERS];
+
+// Acceptable image types for drag-drop
+const ACCEPTABLE_IMAGE_TYPES = [
+  'image/',
+  'image/heic',
+  'image/heif',
+  'image/gif',
+  'image/webp',
+];
+
+// Simple image resizing function to optimize for Claude API
+const resizeImage = async (
+  file: File,
+  maxSize: number = 1568
+): Promise<string> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    img.onload = () => {
+      // Calculate dimensions
+      let { width, height } = img;
+      const maxDim = Math.max(width, height);
+
+      if (maxDim > maxSize) {
+        const scale = maxSize / maxDim;
+        width *= scale;
+        height *= scale;
+      }
+
+      // Set canvas size
+      canvas.width = width;
+      canvas.height = height;
+
+      // Draw and convert to base64
+      ctx?.drawImage(img, 0, 0, width, height);
+      const base64 = canvas.toDataURL('image/jpeg', 0.8);
+      resolve(base64);
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 interface LexicalEditorProps {
   content: string;
@@ -24,6 +126,7 @@ interface LexicalEditorProps {
   onKeyDown?: (event: KeyboardEvent) => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  onImageDrop?: (base64: string, fileName: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -36,20 +139,11 @@ export interface LexicalEditorRef {
   getText: () => string;
 }
 
-function MyCustomAutoFocusPlugin({ shouldFocus = true }: { shouldFocus?: boolean }) {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    if (shouldFocus) {
-      editor.focus();
-    }
-  }, [editor, shouldFocus]);
-
-  return null;
-}
-
 // Proper command-based plugin that doesn't interfere with CodeNode behavior
-function CommandPlugin({ onKeyDown, onContentChange }: { 
+function CommandPlugin({
+  onKeyDown,
+  onContentChange,
+}: {
   onKeyDown?: (event: KeyboardEvent) => void;
   onContentChange?: (content?: string) => void;
 }) {
@@ -92,7 +186,7 @@ function CommandPlugin({ onKeyDown, onContentChange }: {
     }
 
     return () => {
-      removeCommands.forEach(fn => fn());
+      removeCommands.forEach((fn) => fn());
     };
   }, [editor, onKeyDown, onContentChange]);
 
@@ -110,6 +204,59 @@ function CodeHighlightPlugin() {
   return null;
 }
 
+// Simple drag-drop paste plugin for images
+function SimpleDragDropPastePlugin({
+  onImageDrop,
+}: {
+  onImageDrop?: (base64: string, fileName: string) => void;
+}) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerCommand(
+      DRAG_DROP_PASTE,
+      (files) => {
+        (async () => {
+          const filesResult = await mediaFileReader(
+            files,
+            [ACCEPTABLE_IMAGE_TYPES].flatMap((x) => x)
+          );
+
+          for (const { file, result } of filesResult) {
+            if (isMimeType(file, ACCEPTABLE_IMAGE_TYPES)) {
+              console.log(
+                '📸 Processing dropped image:',
+                file.name,
+                file.size,
+                'bytes'
+              );
+
+              // Resize image for optimal Claude API usage
+              const resizedBase64 = await resizeImage(file);
+
+              if (onImageDrop) {
+                onImageDrop(resizedBase64, file.name);
+              } else {
+                // Fallback: insert as text reference
+                editor.update(() => {
+                  const selection = $getSelection();
+                  if (selection) {
+                    selection.insertText(`[Image: ${file.name}]`);
+                  }
+                });
+              }
+            }
+          }
+        })();
+        return true;
+      },
+      COMMAND_PRIORITY_LOW
+    );
+  }, [editor, onImageDrop]);
+
+  return null;
+}
+
 // Line numbering plugin for code blocks
 function LineNumberPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -117,29 +264,35 @@ function LineNumberPlugin() {
   useEffect(() => {
     const updateLineNumbers = () => {
       const codeBlocks = document.querySelectorAll('.lexical-code-block');
-      
+
       // Only log and process if there are actually code blocks
       if (codeBlocks.length === 0) return;
-      
-      console.log(`🔢 Updating line numbers for ${codeBlocks.length} code blocks`);
-      
+
+      console.log(
+        `🔢 Updating line numbers for ${codeBlocks.length} code blocks`
+      );
+
       codeBlocks.forEach((block, index) => {
         // Restore the working logic from bbdf77a commit
         const brTags = block.querySelectorAll('br').length;
-        
+
         // Check if the last element is an empty BR (cursor on empty line)
         const lastChild = block.lastChild;
         const endsWithEmptyBR = lastChild && lastChild.nodeName === 'BR';
-        
+
         // If it ends with empty BR, that line doesn't count until it has content
         const lineCount = endsWithEmptyBR ? Math.max(1, brTags) : brTags + 1;
-        
-        console.log(`Block ${index}: ${brTags} br tags, endsWithEmptyBR: ${endsWithEmptyBR} = ${lineCount} lines`);
-        
-        const numbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
+
+        console.log(
+          `Block ${index}: ${brTags} br tags, endsWithEmptyBR: ${endsWithEmptyBR} = ${lineCount} lines`
+        );
+
+        const numbers = Array.from({ length: lineCount }, (_, i) => i + 1).join(
+          '\n'
+        );
         console.log(`Setting gutter: "${numbers}"`);
         (block as HTMLElement).setAttribute('data-gutter', numbers);
-        
+
         // Check if it was actually set
         const actualGutter = (block as HTMLElement).getAttribute('data-gutter');
         console.log(`Verification: actual gutter value: "${actualGutter}"`);
@@ -167,10 +320,15 @@ function PlaceholderComponent({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EditorRefPlugin({ 
-  editorRef 
-}: { 
-  editorRef: React.MutableRefObject<{ focus: () => void; clear: () => void; getEditor: () => any; getText: () => string } | null> 
+function EditorRefPlugin({
+  editorRef,
+}: {
+  editorRef: React.MutableRefObject<{
+    focus: () => void;
+    clear: () => void;
+    getEditor: () => any;
+    getText: () => string;
+  } | null>;
 }) {
   const [editor] = useLexicalComposerContext();
 
@@ -206,6 +364,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
       onKeyDown,
       onFocus,
       onBlur,
+      onImageDrop,
       placeholder = '',
       disabled = false,
       className = '',
@@ -222,7 +381,9 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
         CodeNode,
         CodeHighlightNode,
         LinkNode,
+        AutoLinkNode,
         MarkNode,
+        HorizontalRuleNode,
       ],
       onError: (error: Error) => {
         console.error('Lexical Error:', error);
@@ -257,6 +418,8 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
         quote: 'border-l-3 border-gruv-yellow pl-3 my-2 text-gruv-light-2',
         link: 'text-gruv-blue underline hover:text-gruv-light cursor-pointer',
         mark: 'bg-gruv-yellow text-gruv-dark-0 px-1 rounded',
+        hr: 'border-0 border-t border-gruv-dark-4 my-4',
+        hrSelected: 'outline outline-2 outline-gruv-blue',
       },
       editable: !disabled,
     };
@@ -273,7 +436,12 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
     );
 
     // Create a ref object for the EditorRefPlugin
-    const internalRef = React.useRef<{ focus: () => void; clear: () => void; getEditor: () => any; getText: () => string } | null>({
+    const internalRef = React.useRef<{
+      focus: () => void;
+      clear: () => void;
+      getEditor: () => any;
+      getText: () => string;
+    } | null>({
       focus: () => {},
       clear: () => {},
       getEditor: () => null,
@@ -293,13 +461,13 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
         <LexicalComposer initialConfig={initialConfig}>
           <RichTextPlugin
             contentEditable={
-              <ContentEditable 
+              <ContentEditable
                 className="min-h-[60px] outline-none bg-transparent text-gruv-light font-mono text-sm p-0 m-0 break-words leading-relaxed"
-                style={{ 
+                style={{
                   fontFamily: 'Courier New, monospace',
                   wordWrap: 'break-word',
                   overflowWrap: 'break-word',
-                  whiteSpace: 'pre-wrap'
+                  whiteSpace: 'pre-wrap',
                 }}
               />
             }
@@ -312,13 +480,35 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           />
           <HistoryPlugin />
           <ListPlugin />
+          <LexicalLinkPlugin
+            validateUrl={validateUrl}
+            attributes={{
+              rel: 'noopener noreferrer',
+              target: '_blank',
+            }}
+          />
+          <AutoLinkPlugin
+            matchers={[
+              createLinkMatcherWithRegExp(
+                /((https?:\/\/(www\.)?)|(www\.))[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)(?<![-.+():%])/,
+                (text) => (text.startsWith('http') ? text : `https://${text}`)
+              ),
+              createLinkMatcherWithRegExp(
+                EMAIL_REGEX,
+                (text) => `mailto:${text}`
+              ),
+            ]}
+          />
+          <ClickableLinkPlugin disabled={disabled} />
           <CodeHighlightPlugin />
           <LineNumberPlugin />
-          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          <HorizontalRulePlugin />
+          <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />
+          <MarkdownShortcutPlugin transformers={EXTENDED_TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
           <CommandPlugin onKeyDown={onKeyDown} onContentChange={onChange} />
           <EditorRefPlugin editorRef={internalRef} />
-          <MyCustomAutoFocusPlugin />
+          <AutoFocusPlugin />
         </LexicalComposer>
 
         {/* Custom Gruvbox styling */}

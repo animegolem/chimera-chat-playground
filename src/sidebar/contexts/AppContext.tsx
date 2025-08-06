@@ -31,7 +31,11 @@ type AppAction =
   | { type: 'SET_ERROR'; error: string | null };
 
 // Initial state
-const initialState: AppState & { loading: boolean; error: string | null; sending: boolean } = {
+const initialState: AppState & {
+  loading: boolean;
+  error: string | null;
+  sending: boolean;
+} = {
   currentSession: null,
   sessions: [],
   activeModels: [],
@@ -285,22 +289,22 @@ export function AppProvider({ children }: AppProviderProps) {
     // Generate unique send ID based on content and timestamp
     const sendId = `${content.substring(0, 20)}-${Date.now()}`;
     const lastSend = sendDedupeMap.current.get(sendId) || 0;
-    
+
     // Reject if same content sent within 500ms
     if (Date.now() - lastSend < 500) {
-      console.warn('[AppContext] Duplicate send rejected', { 
-        sendId, 
+      console.warn('[AppContext] Duplicate send rejected', {
+        sendId,
         contentPreview: content.substring(0, 30) + '...',
-        timeSinceLastSend: Date.now() - lastSend 
+        timeSinceLastSend: Date.now() - lastSend,
       });
       return;
     }
-    
+
     sendDedupeMap.current.set(sendId, Date.now());
-    console.log('[AppContext] sendMessage called', { 
-      sendId, 
+    console.log('[AppContext] sendMessage called', {
+      sendId,
       contentLength: content.length,
-      currentSending: state.sending
+      currentSending: state.sending,
     });
 
     try {

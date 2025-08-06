@@ -31,8 +31,11 @@ export function InputArea({ className = '' }: InputAreaProps) {
   }, []);
 
   const handleSend = useCallback(async () => {
-    console.log('[InputArea] handleSend called', { timestamp: Date.now(), functionId: Math.random().toString(36).substring(2, 11) });
-    
+    console.log('[InputArea] handleSend called', {
+      timestamp: Date.now(),
+      functionId: Math.random().toString(36).substring(2, 11),
+    });
+
     // Get current text from editor instead of state
     const currentText = editorRef.current?.getText() || '';
     if (!currentText.trim() || state.loading || state.sending) return;
@@ -50,28 +53,48 @@ export function InputArea({ className = '' }: InputAreaProps) {
       editorRef.current.clear();
       editorRef.current.focus();
     }
-    
+
     // Update content state after clearing
     setHasContent(false);
   }, [state.loading, state.sending, state.activeModels, actions]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    console.log('[InputArea] handleKeyDown called', { timestamp: Date.now(), functionId: Math.random().toString(36).substring(2, 11) });
-    
-    if (e.key === 'Enter' && e.ctrlKey && !isComposing) {
-      e.preventDefault();
-      handleSend();
-    }
-    
-    // Check content on key events (debounced via setTimeout)
-    setTimeout(checkContent, 0);
-  }, [isComposing, handleSend, checkContent]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      console.log('[InputArea] handleKeyDown called', {
+        timestamp: Date.now(),
+        functionId: Math.random().toString(36).substring(2, 11),
+      });
+
+      if (e.key === 'Enter' && e.ctrlKey && !isComposing) {
+        e.preventDefault();
+        handleSend();
+      }
+
+      // Check content on key events (debounced via setTimeout)
+      setTimeout(checkContent, 0);
+    },
+    [isComposing, handleSend, checkContent]
+  );
 
   // Handle paste events and other content changes
   const handleContentChange = useCallback(() => {
     // Debounce content checking for performance
     setTimeout(checkContent, 10);
   }, [checkContent]);
+
+  // Handle image drops - for now, just show a notification
+  const handleImageDrop = useCallback((base64: string, fileName: string) => {
+    console.log('📸 Image dropped:', fileName, 'Base64 length:', base64.length);
+
+    // Calculate approximate token usage (width * height / 750)
+    // For now, we'll estimate based on base64 size
+    const estimatedTokens = Math.round(base64.length / 1000); // rough estimate
+
+    // TODO: In next phase, integrate with chat backend to send images
+    alert(
+      `Image '${fileName}' processed successfully!\nEstimated tokens: ~${estimatedTokens}\n\nNext: Backend integration to send to Claude API`
+    );
+  }, []);
 
   const handleFocus = useCallback(() => {
     console.log('[InputArea] handleFocus called', { timestamp: Date.now() });
@@ -89,7 +112,10 @@ export function InputArea({ className = '' }: InputAreaProps) {
     <div className={`border-t border-primary p-4 space-y-3 ${className}`}>
       {/* Rich Text Input */}
       <div className="relative">
-        <div className="bg-gruv-dark-soft border border-gruv-medium rounded-md p-3 max-h-96 overflow-y-auto overflow-x-hidden" style={{ contain: 'layout style' }}>
+        <div
+          className="bg-gruv-dark-soft border border-gruv-medium rounded-md p-3 max-h-96 overflow-y-auto overflow-x-hidden"
+          style={{ contain: 'layout style' }}
+        >
           {/* Bash-style prompt when empty and unfocused */}
           {!isFocused && !hasContent && (
             <div className="absolute top-3 left-3 text-gruv-medium pointer-events-none flex items-center gap-1">
@@ -100,10 +126,11 @@ export function InputArea({ className = '' }: InputAreaProps) {
           <LexicalEditor
             ref={editorRef}
             content=""
-            onChange={handleContentChange} 
+            onChange={handleContentChange}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            onImageDrop={handleImageDrop}
             placeholder=""
             disabled={state.loading}
             className="bg-transparent text-gruv-light"

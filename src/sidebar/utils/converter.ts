@@ -41,9 +41,9 @@ class MarkdownConverter {
       replacement: (content, node) => {
         const codeNode = node.firstChild as HTMLElement;
         const language = codeNode.className.replace('language-', '') || '';
-        
+
         return '\n\n```' + language + '\n' + content + '\n```\n\n';
-      }
+      },
     });
 
     // Handle inline code
@@ -51,7 +51,7 @@ class MarkdownConverter {
       filter: ['code'],
       replacement: (content) => {
         return '`' + content + '`';
-      }
+      },
     });
 
     // Handle highlights (from TipTap highlight extension)
@@ -59,7 +59,7 @@ class MarkdownConverter {
       filter: ['mark'],
       replacement: (content) => {
         return '==' + content + '==';
-      }
+      },
     });
   }
 

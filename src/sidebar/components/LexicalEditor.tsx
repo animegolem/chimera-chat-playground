@@ -44,14 +44,7 @@ import { DRAG_DROP_PASTE } from '@lexical/rich-text';
 import { isMimeType, mediaFileReader } from '@lexical/utils';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { COMMAND_PRIORITY_LOW } from 'lexical';
-
-// URL validation utility from Lexical playground
-const validateUrl = (url: string): boolean => {
-  const urlRegExp = new RegExp(
-    /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=+$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=+$,\w]+@)[A-Za-z0-9.-]+)((?:\/[+~%/.\w-_]*)?\??(?:[-+=&;%@.\w_]*)#?(?:[\w]*))?)/
-  );
-  return url === 'https://' || urlRegExp.test(url);
-};
+import { validateUrl } from '@/sidebar/utils/lexical-utils';
 
 // Email regex for AutoLinkPlugin
 const EMAIL_REGEX =

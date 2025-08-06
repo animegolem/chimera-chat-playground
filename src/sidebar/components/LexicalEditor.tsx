@@ -33,7 +33,10 @@ import {
 import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { MarkNode } from '@lexical/mark';
 import { TRANSFORMERS, ElementTransformer } from '@lexical/markdown';
-import { $createHorizontalRuleNode, $isHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import {
+  $createHorizontalRuleNode,
+  $isHorizontalRuleNode,
+} from '@lexical/react/LexicalHorizontalRuleNode';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
@@ -53,28 +56,6 @@ const validateUrl = (url: string): boolean => {
 // Email regex for AutoLinkPlugin
 const EMAIL_REGEX =
   /(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/;
-
-// Horizontal Rule transformer (missing from default TRANSFORMERS)
-const HR_TRANSFORMER: ElementTransformer = {
-  dependencies: [HorizontalRuleNode],
-  export: (node) => {
-    return $isHorizontalRuleNode(node) ? '***' : null;
-  },
-  regExp: /^(---|\*\*\*|___)\s?$/,
-  replace: (parentNode, _1, _2, isImport) => {
-    const line = $createHorizontalRuleNode();
-    if (isImport || parentNode.getNextSibling() != null) {
-      parentNode.replace(line);
-    } else {
-      parentNode.insertBefore(line);
-    }
-    line.selectNext();
-  },
-  type: 'element',
-};
-
-// Combined transformers including HR
-const EXTENDED_TRANSFORMERS = [HR_TRANSFORMER, ...TRANSFORMERS];
 
 // Acceptable image types for drag-drop
 const ACCEPTABLE_IMAGE_TYPES = [
@@ -504,7 +485,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <LineNumberPlugin />
           <HorizontalRulePlugin />
           <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />
-          <MarkdownShortcutPlugin transformers={EXTENDED_TRANSFORMERS} />
+          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
           <CommandPlugin onKeyDown={onKeyDown} onContentChange={onChange} />
           <EditorRefPlugin editorRef={internalRef} />

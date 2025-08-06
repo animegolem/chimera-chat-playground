@@ -54,54 +54,14 @@ import { isMimeType, mediaFileReader } from '@lexical/utils';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { COMMAND_PRIORITY_LOW } from 'lexical';
 import { validateUrl } from '@/sidebar/utils/lexical-utils';
+import {
+  resizeImage,
+  ACCEPTABLE_IMAGE_TYPES,
+} from '@/sidebar/utils/image-utils';
 
 // Email regex for AutoLinkPlugin
 const EMAIL_REGEX =
   /(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/;
-
-// Acceptable image types for drag-drop
-const ACCEPTABLE_IMAGE_TYPES = [
-  'image/',
-  'image/heic',
-  'image/heif',
-  'image/gif',
-  'image/webp',
-];
-
-// Simple image resizing function to optimize for Claude API
-const resizeImage = async (
-  file: File,
-  maxSize: number = 1568
-): Promise<string> => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-
-    img.onload = () => {
-      // Calculate dimensions
-      let { width, height } = img;
-      const maxDim = Math.max(width, height);
-
-      if (maxDim > maxSize) {
-        const scale = maxSize / maxDim;
-        width *= scale;
-        height *= scale;
-      }
-
-      // Set canvas size
-      canvas.width = width;
-      canvas.height = height;
-
-      // Draw and convert to base64
-      ctx?.drawImage(img, 0, 0, width, height);
-      const base64 = canvas.toDataURL('image/jpeg', 0.8);
-      resolve(base64);
-    };
-
-    img.src = URL.createObjectURL(file);
-  });
-};
 
 interface LexicalEditorProps {
   content: string;
@@ -272,7 +232,7 @@ function CodeBlockEscapePlugin() {
   return null;
 }
 
-// Simple drag-drop paste plugin for images
+// Simple drag-drop paste plugin for images - command pattern
 function SimpleDragDropPastePlugin({
   onImageDrop,
 }: {
@@ -290,22 +250,13 @@ function SimpleDragDropPastePlugin({
             [ACCEPTABLE_IMAGE_TYPES].flatMap((x) => x)
           );
 
-          for (const { file, result } of filesResult) {
+          for (const { file } of filesResult) {
             if (isMimeType(file, ACCEPTABLE_IMAGE_TYPES)) {
-              console.log(
-                '📸 Processing dropped image:',
-                file.name,
-                file.size,
-                'bytes'
-              );
-
-              // Resize image for optimal Claude API usage
               const resizedBase64 = await resizeImage(file);
 
               if (onImageDrop) {
                 onImageDrop(resizedBase64, file.name);
               } else {
-                // Fallback: insert as text reference
                 editor.update(() => {
                   const selection = $getSelection();
                   if (selection) {

@@ -255,20 +255,13 @@ export class ContentSanitizer {
       return `<img src="${safeHref}" alt="${safeText}" title="${safeTitle}" loading="lazy">`;
     };
 
-    // Override code block rendering with Shiki syntax highlighting
+    // Override code block rendering - use fallback since sync Shiki is not available
     renderer.code = ({ text, lang }) => {
-      const safeCode = text; // Don't escape - Shiki handles this
+      const safeCode = text;
       const safeLanguage = lang ? this.validateLanguage(lang) : 'plaintext';
-
-      try {
-        // Use Shiki for syntax highlighting with gruvbox theme
-        return this.renderCodeWithShiki(safeCode, safeLanguage);
-      } catch (error) {
-        console.warn('Shiki highlighting failed, falling back to plain code:', error);
-        // Fallback to plain code block
-        const escapedCode = this.escapeHtml(safeCode);
-        return `<pre><code class="language-${safeLanguage}">${escapedCode}</code></pre>`;
-      }
+      
+      // Use fallback rendering for sync context (async path handles Shiki properly)
+      return this.fallbackCodeRender(safeCode, safeLanguage);
     };
 
     // Override inline code rendering

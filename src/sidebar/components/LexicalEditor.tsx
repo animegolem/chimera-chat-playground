@@ -40,7 +40,6 @@ import { MarkNode } from '@lexical/mark';
 import {
   TRANSFORMERS,
   ElementTransformer,
-  TextMatchTransformer,
   $convertToMarkdownString,
 } from '@lexical/markdown';
 import {
@@ -89,7 +88,7 @@ const HR_TRANSFORMER: ElementTransformer = {
 };
 
 // Custom Shiki-compatible code block transformer for ``` markdown shortcut
-const SHIKI_CODE_BLOCK_TRANSFORMER: TextMatchTransformer = {
+const SHIKI_CODE_BLOCK_TRANSFORMER: ElementTransformer = {
   dependencies: [CodeNode],
   export: (node: any) => {
     if (!$isCodeNode(node)) {
@@ -99,26 +98,20 @@ const SHIKI_CODE_BLOCK_TRANSFORMER: TextMatchTransformer = {
     const language = node.getLanguage() || '';
     return '```' + language + '\n' + textContent + '\n```';
   },
-  importRegExp: /```([a-z]*)\n/,
-  regExp: /^```([a-z]*)$/,
-  replace: (textNode, match) => {
+  regExp: /^```([a-z]*)?$/,
+  replace: (parentNode, children, match) => {
     const language = match[1] || '';
-    
-    // Get the parent paragraph
-    const paragraph = textNode.getParent();
-    if (!paragraph) return;
-    
-    // Create a new code node
     const codeNode = $createCodeNode(language);
     
-    // Replace the paragraph with the code node
-    paragraph.replace(codeNode);
+    // Move any existing text content into the code node
+    if (children.length > 0) {
+      codeNode.append(...children);
+    }
     
-    // Focus the code node
+    parentNode.replace(codeNode);
     codeNode.selectStart();
   },
-  trigger: '```',
-  type: 'text-match',
+  type: 'element',
 };
 
 interface LexicalEditorProps {

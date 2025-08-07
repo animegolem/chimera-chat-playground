@@ -1,9 +1,4 @@
-import React, {
-  useCallback,
-  useImperativeHandle,
-  forwardRef,
-  useEffect,
-} from 'react';
+import React, { useImperativeHandle, forwardRef, useEffect } from 'react';
 import {
   InitialConfigType,
   LexicalComposer,
@@ -11,10 +6,8 @@ import {
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  EditorState,
   $getRoot,
   $getSelection,
   $isRangeSelection,
@@ -22,7 +15,6 @@ import {
   KEY_ENTER_COMMAND,
   COMMAND_PRIORITY_HIGH,
 } from 'lexical';
-import { $generateHtmlFromNodes } from '@lexical/html';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
@@ -41,7 +33,12 @@ import {
 } from '@lexical/react/LexicalAutoLinkPlugin';
 import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { MarkNode } from '@lexical/mark';
-import { TRANSFORMERS, ElementTransformer } from '@lexical/markdown';
+import {
+  TRANSFORMERS,
+  ElementTransformer,
+  TextMatchTransformer,
+  $convertToMarkdownString,
+} from '@lexical/markdown';
 import {
   $createHorizontalRuleNode,
   $isHorizontalRuleNode,
@@ -52,7 +49,7 @@ import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { DRAG_DROP_PASTE } from '@lexical/rich-text';
 import { isMimeType, mediaFileReader } from '@lexical/utils';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-import { COMMAND_PRIORITY_LOW } from 'lexical';
+import { COMMAND_PRIORITY_LOW, ParagraphNode } from 'lexical';
 import { validateUrl } from '@/sidebar/utils/lexical-utils';
 import {
   resizeImage,
@@ -60,6 +57,7 @@ import {
 } from '@/sidebar/utils/image-utils';
 import { KeyboardShortcutPlugin } from '@/sidebar/plugins/KeyboardShortcutPlugin';
 import { ContentChangePlugin } from '@/sidebar/plugins/ContentChangePlugin';
+import { SmartPastePlugin } from '@/sidebar/plugins/SmartPastePlugin';
 
 // Email regex for AutoLinkPlugin
 const EMAIL_REGEX =
@@ -86,13 +84,14 @@ const HR_TRANSFORMER: ElementTransformer = {
   type: 'element',
 };
 
+
 interface LexicalEditorProps {
   content: string;
-  onChange: (content: string) => void;
   onKeyDown?: (event: KeyboardEvent) => void;
   onFocus?: () => void;
   onBlur?: () => void;
   onImageDrop?: (base64: string, fileName: string) => void;
+  onContentChange?: (content?: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -103,6 +102,7 @@ export interface LexicalEditorRef {
   clear: () => void;
   getEditor: () => any;
   getText: () => string;
+  getMarkdown: () => string;
 }
 
 // Code highlighting plugin for proper code block support
@@ -245,6 +245,54 @@ function SimpleDragDropPastePlugin({
   return null;
 }
 
+// Debug plugin for markdown shortcut issues and transformer research
+function MarkdownDebugPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    console.log('IAC-112 Complete: Using TRANSFORMERS + HR_TRANSFORMER');
+    console.log('Active transformer count:', TRANSFORMERS.length + 1);
+
+    // List what transformers are active
+    console.log('Active transformers:');
+    console.log('- HR_TRANSFORMER (---)');
+    TRANSFORMERS.forEach((transformer) => {
+      // Some transformers don't have regExp (like multiline transformers)
+      const regex = (transformer as any).regExp?.source || 'N/A';
+      console.log(`- ${transformer.type}: ${regex}`);
+    });
+
+    console.log('\nTesting plan:');
+    console.log('✓ Headers: # ## ###');
+    console.log('✓ Blockquotes: >');
+    console.log('✓ Lists: 1. * -');
+    console.log('✓ Code: ``` and `code`');
+    console.log('✓ Text format: **bold** *italic*');
+    console.log('✓ Horizontal rules: ---');
+    console.log('✓ Links: [text](url)');
+
+    // Monitor for node changes that might indicate markdown transformations
+    const unregister = editor.registerNodeTransform(ParagraphNode, (node) => {
+      const textContent = node.getTextContent();
+
+      // Log when we see markdown patterns that should transform
+      if (textContent.match(/^\d+\.\s/)) {
+        console.log('DEBUG: Numbered list pattern detected:', textContent);
+      }
+      if (textContent.match(/^#{1,6}\s/)) {
+        console.log('DEBUG: Header pattern detected:', textContent);
+      }
+      if (textContent.match(/^-\s|^\*\s/)) {
+        console.log('DEBUG: Bullet list pattern detected:', textContent);
+      }
+    });
+
+    return unregister;
+  }, [editor]);
+
+  return null;
+}
+
 // Line numbering plugin for code blocks
 function LineNumberPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -296,11 +344,11 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
   (
     {
       content,
-      onChange,
       onKeyDown,
       onFocus,
       onBlur,
       onImageDrop,
+      onContentChange,
       placeholder = '',
       disabled = false,
       className = '',
@@ -360,17 +408,6 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
       editable: !disabled,
     };
 
-    const handleChange = useCallback(
-      (editorState: EditorState, editor: any) => {
-        // Call onChange to notify parent of content changes
-        // This enables proper button state and cursor management
-        if (onChange) {
-          onChange(''); // We don't need to pass actual content, just trigger the check
-        }
-      },
-      [onChange]
-    );
-
     // Internal component to handle ref methods using standard patterns
     const RefHandler = () => {
       const [editor] = useLexicalComposerContext();
@@ -394,6 +431,13 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
             });
             return text;
           },
+          getMarkdown: () => {
+            let markdown = '';
+            editor.getEditorState().read(() => {
+              markdown = $convertToMarkdownString([HR_TRANSFORMER, ...TRANSFORMERS]);
+            });
+            return markdown;
+          },
         }),
         [editor]
       );
@@ -414,6 +458,8 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
                   overflowWrap: 'break-word',
                   whiteSpace: 'pre-wrap',
                 }}
+                onFocus={onFocus}
+                onBlur={onBlur}
               />
             }
             placeholder={
@@ -450,10 +496,13 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <LineNumberPlugin />
           <HorizontalRulePlugin />
           <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />
-          <MarkdownShortcutPlugin transformers={[HR_TRANSFORMER, ...TRANSFORMERS]} />
-          <OnChangePlugin onChange={handleChange} />
+          <MarkdownShortcutPlugin
+            transformers={[HR_TRANSFORMER, ...TRANSFORMERS]}
+          />
+          <MarkdownDebugPlugin />
           <KeyboardShortcutPlugin onKeyDown={onKeyDown} />
-          <ContentChangePlugin onContentChange={onChange} />
+          <ContentChangePlugin onContentChange={onContentChange} />
+          <SmartPastePlugin enabled={true} />
           <AutoFocusPlugin />
           <RefHandler />
         </LexicalComposer>

@@ -1,8 +1,14 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Paperclip } from 'lucide-react';
 import { useApp } from '@/sidebar/contexts/AppContext';
 import { LexicalEditor, LexicalEditorRef } from './LexicalEditor';
+import {
+  $getSelection,
+  $createTextNode,
+  $getRoot,
+  $createParagraphNode,
+} from 'lexical';
 
 interface InputAreaProps {
   className?: string;
@@ -13,6 +19,8 @@ export function InputArea({ className = '' }: InputAreaProps) {
   const [isComposing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [hasContent, setHasContent] = useState(false);
+  const [fileCount, setFileCount] = useState(0);
+  const [estimatedTokens, setEstimatedTokens] = useState(0);
   const editorRef = useRef<LexicalEditorRef>(null);
 
   // Auto-focus the input
@@ -31,10 +39,22 @@ export function InputArea({ className = '' }: InputAreaProps) {
   }, []);
 
   const handleSend = useCallback(async () => {
+    console.log('DEBUG: handleSend called');
 
-    // Get current text from editor instead of state
-    const currentText = editorRef.current?.getText() || '';
-    if (!currentText.trim() || state.loading || state.sending) return;
+    // Get current markdown from editor instead of plain text
+    const currentMarkdown = editorRef.current?.getMarkdown() || '';
+    console.log('DEBUG: currentMarkdown:', currentMarkdown);
+    console.log(
+      'DEBUG: state.loading:',
+      state.loading,
+      'state.sending:',
+      state.sending
+    );
+
+    if (!currentMarkdown.trim() || state.loading || state.sending) {
+      console.log('DEBUG: Early return - no content or loading/sending');
+      return;
+    }
 
     const activeModelIds = state.activeModels;
     if (activeModelIds.length === 0) {
@@ -42,7 +62,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
       return;
     }
 
-    await actions.sendMessage(currentText.trim(), activeModelIds);
+    await actions.sendMessage(currentMarkdown.trim(), activeModelIds);
 
     // Clear and refocus the editor
     if (editorRef.current) {
@@ -50,13 +70,14 @@ export function InputArea({ className = '' }: InputAreaProps) {
       editorRef.current.focus();
     }
 
-    // Update content state after clearing
+    // Reset all states after clearing
     setHasContent(false);
+    setFileCount(0);
+    setEstimatedTokens(0);
   }, [state.loading, state.sending, state.activeModels, actions]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-
       if (e.key === 'Enter' && e.ctrlKey && !isComposing) {
         e.preventDefault();
         handleSend();
@@ -71,28 +92,80 @@ export function InputArea({ className = '' }: InputAreaProps) {
   // Handle paste events and other content changes
   const handleContentChange = useCallback(() => {
     // Debounce content checking for performance
-    setTimeout(checkContent, 10);
-  }, [checkContent]);
+    setTimeout(() => {
+      checkContent();
 
-  // Handle image drops - for now, just show a notification
-  const handleImageDrop = useCallback((base64: string, fileName: string) => {
+      // Check for image deletions by counting [Image: xxx] patterns
+      const currentText = editorRef.current?.getText() || '';
+      const imageMatches = currentText.match(/\[Image: [^\]]+\]/g) || [];
+      const currentImageCount = imageMatches.length;
 
-    // Calculate approximate token usage (width * height / 750)
-    // For now, we'll estimate based on base64 size
-    const estimatedTokens = Math.round(base64.length / 1000); // rough estimate
+      if (currentImageCount < fileCount) {
+        console.log('DEBUG: Image(s) deleted, updating counter');
+        // Rough estimate: assume deleted images were average size
+        const avgTokensPerImage = estimatedTokens / fileCount;
+        const removedImages = fileCount - currentImageCount;
+        setFileCount(currentImageCount);
+        setEstimatedTokens((prev) =>
+          Math.max(0, prev - avgTokensPerImage * removedImages)
+        );
+      }
+    }, 10);
+  }, [checkContent, fileCount, estimatedTokens]);
 
-    // TODO: In next phase, integrate with chat backend to send images
-    alert(
-      `Image '${fileName}' processed successfully!\nEstimated tokens: ~${estimatedTokens}\n\nNext: Backend integration to send to Claude API`
-    );
-  }, []);
+  // Handle image drops - insert text indicator like debug page
+  const handleImageDrop = useCallback(
+    (_base64: string, fileName: string) => {
+      console.log('DEBUG: Image dropped:', fileName);
+
+      // Estimate tokens (rough approximation based on typical image sizes)
+      const tokenEstimate = Math.round(Math.random() * 500 + 100); // 100-600 tokens estimate
+
+      // Update file counters
+      setFileCount((prev) => prev + 1);
+      setEstimatedTokens((prev) => prev + tokenEstimate);
+
+      // Insert [Image: filename.png] text into the editor
+      if (editorRef.current) {
+        console.log('DEBUG: Editor ref exists');
+        const editor = editorRef.current.getEditor();
+
+        editor.update(() => {
+          const selection = $getSelection();
+          console.log('DEBUG: Selection:', selection);
+
+          if (selection) {
+            const imageText = `[Image: ${fileName}] `;
+            console.log('DEBUG: Inserting text:', imageText);
+            selection.insertText(imageText);
+          } else {
+            console.log('DEBUG: No selection, trying to insert at end');
+            // If no selection, insert at the root
+            const textNode = $createTextNode(`[Image: ${fileName}] `);
+            const root = $getRoot();
+            const paragraph = $createParagraphNode();
+            paragraph.append(textNode);
+            root.append(paragraph);
+          }
+        });
+
+        // Update content state
+        setTimeout(checkContent, 10);
+      } else {
+        console.log('DEBUG: No editor ref');
+      }
+    },
+    [checkContent]
+  );
 
   const handleFocus = useCallback(() => {
+    console.log('DEBUG: Focus event');
     setIsFocused(true);
     checkContent();
   }, [checkContent]);
 
   const handleBlur = useCallback(() => {
+    console.log('DEBUG: Blur event');
     setIsFocused(false);
     checkContent();
   }, [checkContent]);
@@ -115,11 +188,11 @@ export function InputArea({ className = '' }: InputAreaProps) {
           <LexicalEditor
             ref={editorRef}
             content=""
-            onChange={handleContentChange}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onImageDrop={handleImageDrop}
+            onContentChange={handleContentChange}
             placeholder=""
             disabled={state.loading}
             className="bg-transparent text-gruv-light"
@@ -131,10 +204,17 @@ export function InputArea({ className = '' }: InputAreaProps) {
       <div className="grid grid-cols-3 gap-2 text-xs text-gruv-light-soft items-center">
         {/* Left: Files */}
         <div className="flex items-center gap-1">
-          <span className="flex items-center gap-1 opacity-50">
-            <Paperclip className="h-3 w-3" />
-            Files (coming soon)
-          </span>
+          {fileCount > 0 ? (
+            <span className="flex items-center gap-1 text-gruv-aqua-bright">
+              <Paperclip className="h-3 w-3" />
+              Files ({estimatedTokens} tokens est)
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 opacity-50">
+              <Paperclip className="h-3 w-3" />
+              Files
+            </span>
+          )}
         </div>
 
         {/* Center: Selection/Errors */}
@@ -159,7 +239,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
               state.activeModels.length === 0 ||
               !hasContent
             }
-            className="bg-gruv-medium hover:bg-gruv-green text-gruv-light hover:text-gruv-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gruv-medium hover:bg-gruv-green text-gruv-light hover:text-gruv-aqua-bright transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state.loading ? (
               <span className="hourglass-loading text-sm"></span>

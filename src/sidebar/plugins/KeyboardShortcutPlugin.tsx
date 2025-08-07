@@ -4,7 +4,7 @@
  */
 import { useEffect } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { COMMAND_PRIORITY_LOW } from 'lexical';
+import { COMMAND_PRIORITY_LOW, KEY_DOWN_COMMAND } from 'lexical';
 
 interface KeyboardShortcutPluginProps {
   onKeyDown?: (event: KeyboardEvent) => void;
@@ -19,14 +19,20 @@ export function KeyboardShortcutPlugin({
     if (!onKeyDown) return;
 
     const removeKeyCommand = editor.registerCommand(
-      'keydown' as any,
+      KEY_DOWN_COMMAND,
       (event: KeyboardEvent) => {
-        // Only handle special key combinations that need custom behavior
-        // Let Lexical handle normal editing (including Enter in code blocks)
-        if (event.ctrlKey || event.metaKey || event.altKey) {
+        console.log(
+          'DEBUG: KeyboardShortcutPlugin triggered, key:',
+          event.key,
+          'ctrlKey:',
+          event.ctrlKey
+        );
+
+        // Always call onKeyDown to let parent handle all key events
+        if (onKeyDown) {
           onKeyDown(event);
-          // Don't prevent default - let other handlers run too
         }
+
         return false; // Always allow other handlers to process
       },
       COMMAND_PRIORITY_LOW // Low priority to not interfere with built-ins

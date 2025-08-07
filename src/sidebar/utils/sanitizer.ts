@@ -68,7 +68,6 @@ export class ContentSanitizer {
       return '';
     }
 
-
     try {
       // Step 1: Process markdown to HTML with marked
       const htmlContent = this.processMarkdown(content);

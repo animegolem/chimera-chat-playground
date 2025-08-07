@@ -57,7 +57,7 @@ function DebugApp() {
       <div className="bg-gruv-dark-1 border-2 border-gruv-dark-4 rounded p-3 min-h-[300px]">
         <LexicalEditor
           content=""
-          onChange={handleChange}
+          onContentChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Type ``` + space for code block..."
           className="w-full"

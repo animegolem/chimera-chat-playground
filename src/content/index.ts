@@ -1,7 +1,6 @@
 // Content script for Firefox Bootstrap extension
 // Handles page interaction, text selection, and DOM content extraction
 
-
 let lastSelection = '';
 let selectionTimeout: number | null = null;
 
@@ -11,7 +10,6 @@ document.addEventListener('keyup', handleSelectionChange);
 
 // Message handler for communication with sidebar/background
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-
   switch (message.type) {
     case 'GET_PAGE_CONTENT':
       handleGetPageContent(sendResponse);
@@ -55,7 +53,6 @@ function handleSelectionChange() {
         .catch(() => {
           // Sidebar might not be open, ignore error
         });
-
     } else if (!selectedText && lastSelection) {
       // Selection cleared
       lastSelection = '';

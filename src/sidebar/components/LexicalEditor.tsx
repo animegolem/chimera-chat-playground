@@ -24,7 +24,10 @@ import {
   CodeNode,
   $isCodeNode,
 } from '@lexical/code';
-import { registerCodeHighlighting } from '@lexical/code-shiki';
+import { 
+  registerCodeHighlighting, 
+  ShikiTokenizer
+} from '@lexical/code-shiki';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
 import { LinkPlugin as LexicalLinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import {
@@ -110,7 +113,13 @@ function CodeHighlightPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    return registerCodeHighlighting(editor);
+    console.log('IAC-120: Registering Shiki code highlighting');
+    console.log('Shiki tokenizer default language:', ShikiTokenizer.defaultLanguage);
+    console.log('Shiki tokenizer default theme:', ShikiTokenizer.defaultTheme);
+    
+    // Shiki will handle theme and language loading dynamically
+    // The nightly build includes support for 100+ languages
+    return registerCodeHighlighting(editor, ShikiTokenizer);
   }, [editor]);
 
   return null;

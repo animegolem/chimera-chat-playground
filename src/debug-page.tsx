@@ -57,7 +57,7 @@ function DebugPage() {
       >
         <LexicalEditor
           content=""
-          onChange={handleChange}
+          onContentChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Type ``` + space for code block..."
           className="w-full"

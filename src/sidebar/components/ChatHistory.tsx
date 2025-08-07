@@ -77,7 +77,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
   const handleCopy = async () => {
     await actions.copyMessage(message.content);
     setCopyFeedback(true);
-    setTimeout(() => setCopyFeedback(false), 1000);
+    setTimeout(() => setCopyFeedback(false), 1500);
   };
 
   const handleEdit = () => {
@@ -156,7 +156,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         </div>
 
         {/* Hover UI for user messages */}
-        {!isEditing && !showDeleteConfirm && (
+        {!isEditing && !showDeleteConfirm && !copyFeedback && (
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
             <button
               className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
@@ -173,10 +173,8 @@ function MessageBubble({ message }: MessageBubbleProps) {
             </button>
             <button
               onClick={handleCopy}
-              className={`text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors ${
-                copyFeedback ? 'animate-spin text-gruv-blue-bright' : ''
-              }`}
-              title={copyFeedback ? "Copied!" : "Copy message"}
+              className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+              title="Copy message"
             >
               ✂
             </button>
@@ -187,6 +185,13 @@ function MessageBubble({ message }: MessageBubbleProps) {
             >
               🗑
             </button>
+          </div>
+        )}
+
+        {/* Copy feedback popup */}
+        {copyFeedback && (
+          <div className="absolute top-2 right-2 bg-gruv-green-bright text-gruv-dark px-2 py-1 rounded text-xs font-medium shadow-lg z-10">
+            Copied!
           </div>
         )}
 
@@ -239,7 +244,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       {/* Hover UI for AI messages */}
-      {!showDeleteConfirm && (
+      {!showDeleteConfirm && !copyFeedback && (
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
           <button
             className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
@@ -249,10 +254,8 @@ function MessageBubble({ message }: MessageBubbleProps) {
           </button>
           <button
             onClick={handleCopy}
-            className={`text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors ${
-              copyFeedback ? 'animate-spin text-gruv-blue-bright' : ''
-            }`}
-            title={copyFeedback ? "Copied!" : "Copy response"}
+            className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+            title="Copy response"
           >
             ✂
           </button>
@@ -263,6 +266,13 @@ function MessageBubble({ message }: MessageBubbleProps) {
           >
             🗑
           </button>
+        </div>
+      )}
+
+      {/* Copy feedback popup */}
+      {copyFeedback && (
+        <div className="absolute top-2 right-2 bg-gruv-green-bright text-gruv-dark px-2 py-1 rounded text-xs font-medium shadow-lg z-10">
+          Copied!
         </div>
       )}
 

@@ -99,15 +99,13 @@ const SHIKI_CODE_BLOCK_TRANSFORMER: ElementTransformer = {
     const language = node.getLanguage() || '';
     return '```' + language + '\n' + textContent + '\n```';
   },
-  regExp: /^```([a-z]*)?$/,
+  regExp: /^```([a-z]*)?\s$/,
   replace: (parentNode, children, match) => {
     const language = match[1] || '';
     const codeNode = $createCodeNode(language);
     
-    // Move any existing text content into the code node
-    if (children.length > 0) {
-      codeNode.append(...children);
-    }
+    // Don't include the backticks in the code content
+    // children will be empty or contain only whitespace at this point
     
     parentNode.replace(codeNode);
     codeNode.selectStart();
@@ -144,10 +142,16 @@ function CodeHighlightPlugin() {
     console.log('Shiki tokenizer default language:', ShikiTokenizer.defaultLanguage);
     console.log('Shiki tokenizer default theme:', ShikiTokenizer.defaultTheme);
     
-    // Shiki will handle theme and language loading dynamically
-    // The nightly build includes support for 100+ languages
-    // Cast to any to bypass version mismatch between lexical and @lexical/code-shiki
-    return registerCodeHighlighting(editor as any, ShikiTokenizer);
+    // Create a customized tokenizer with gruvbox-friendly settings
+    const customTokenizer = {
+      ...ShikiTokenizer,
+      defaultTheme: 'gruvbox-dark-medium', // Use a dark theme compatible with our gruvbox styling
+      defaultLanguage: 'javascript',
+    };
+    
+    // All packages are now on nightly version 0.33.2-nightly.20250807.0
+    // This should resolve version compatibility issues
+    return registerCodeHighlighting(editor, customTokenizer);
   }, [editor]);
 
   return null;

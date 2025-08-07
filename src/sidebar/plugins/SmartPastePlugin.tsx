@@ -85,11 +85,26 @@ export function SmartPastePlugin({
         if (isInCodeBlock) {
           // Inside code block: Preserve raw text, no markdown parsing
           console.log('SmartPastePlugin: Raw text paste (code context)');
-          selection.insertText(text);
+          
+          // Prevent the default paste first
+          if (payload instanceof ClipboardEvent) {
+            payload.preventDefault();
+          } else if (payload instanceof DragEvent) {
+            payload.preventDefault();
+          }
+          
+          // Use editor.update to ensure we're in control of the insertion
+          editor.update(() => {
+            // Clear any existing selection first
+            selection.removeText();
+            // Then insert the text
+            selection.insertText(text);
+          });
+          
           return true; // Prevent default paste behavior
         } else {
           // General editor: Apply markdown formatting
-          return handleMarkdownPaste(editor, text, selection);
+          return handleMarkdownPaste(editor, text, selection, payload);
         }
       },
       COMMAND_PRIORITY_HIGH // High priority to intercept before default handlers
@@ -124,22 +139,39 @@ function $isInCodeContext(node: any): boolean {
 function handleMarkdownPaste(
   editor: any,
   text: string,
-  selection: any
+  selection: any,
+  event?: ClipboardEvent | DragEvent
 ): boolean {
   try {
     // Check if content looks like markdown
     const hasMarkdownPatterns =
-      /(\*\*.*\*\*|\*.*\*|`.*`|^#{1,6}\s|^>\s|^\d+\.\s|^[-*]\s)/m.test(text);
+      /(\*\*.*\*\*|\*.*\*|`.*`|^#{1,6}\s|^>\s|^\d+\.\s|^[-*]\s|```)/m.test(text);
 
     if (!hasMarkdownPatterns) {
-      // Plain text, let default handler process
-      console.log('SmartPastePlugin: Plain text, using default handler');
-      return false;
+      // Plain text - just insert it normally but still prevent double paste
+      console.log('SmartPastePlugin: Plain text, inserting directly');
+      
+      // Prevent default first
+      if (event instanceof ClipboardEvent) {
+        event.preventDefault();
+      } else if (event instanceof DragEvent) {
+        event.preventDefault();
+      }
+      
+      selection.insertText(text);
+      return true; // Prevent default paste behavior
     }
 
     console.log(
       'SmartPastePlugin: Markdown detected, converting to rich nodes'
     );
+
+    // Prevent default first
+    if (event instanceof ClipboardEvent) {
+      event.preventDefault();
+    } else if (event instanceof DragEvent) {
+      event.preventDefault();
+    }
 
     // Use editor.update to ensure we're in the right context
     editor.update(() => {
@@ -153,6 +185,16 @@ function handleMarkdownPaste(
     return true; // Prevent default paste behavior
   } catch (error) {
     console.error('SmartPastePlugin: Error processing markdown paste', error);
-    return false; // Fall back to default paste
+    
+    // Prevent default first
+    if (event instanceof ClipboardEvent) {
+      event.preventDefault();
+    } else if (event instanceof DragEvent) {
+      event.preventDefault();
+    }
+    
+    // On error, insert as plain text to avoid losing content
+    selection.insertText(text);
+    return true; // Still prevent default to avoid double paste
   }
 }

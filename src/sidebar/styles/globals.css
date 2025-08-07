@@ -133,7 +133,7 @@
 
   /* Lexical editor styles - following playground pattern */
   .editor-code {
-    background-color: #1d2021;
+    background-color: #1d2021 !important;
     border: 1px solid #504945;
     border-radius: 0.25rem;
     color: #b8bb26;
@@ -147,6 +147,11 @@
     position: relative;
     tab-size: 2;
     white-space: pre-wrap;
+  }
+  
+  /* Override Shiki theme background */
+  .editor-code[style*="background-color"] {
+    background-color: #1d2021 !important;
   }
 
   .editor-code::before {
@@ -175,5 +180,117 @@
     color: #d5c4a1;
     margin: 8px 0;
     padding-left: 12px;
+  }
+
+  /* RichMessageContent styles - IAC-113: Consistent with LexicalEditor theme */
+  .rich-message-content {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.53;
+    color: #ebdbb2;
+  }
+
+  .rich-message-content p {
+    margin: 0 0 8px 0;
+    padding: 0;
+  }
+
+  .rich-message-content h1,
+  .rich-message-content h2,
+  .rich-message-content h3,
+  .rich-message-content h4,
+  .rich-message-content h5,
+  .rich-message-content h6 {
+    margin: 8px 0 4px 0;
+    font-weight: bold;
+  }
+
+  .rich-message-content h1 { font-size: 16px; color: #fb4934; }
+  .rich-message-content h2 { font-size: 15px; color: #fabd2f; }
+  .rich-message-content h3 { font-size: 14px; color: #b8bb26; }
+  .rich-message-content h4 { font-size: 13px; color: #83a598; }
+  .rich-message-content h5 { font-size: 13px; color: #d3869b; }
+  .rich-message-content h6 { font-size: 13px; color: #fe8019; }
+
+  .rich-message-content strong {
+    font-weight: bold;
+    color: #fabd2f;
+  }
+
+  .rich-message-content em {
+    font-style: italic;
+    color: #83a598;
+  }
+
+  .rich-message-content code {
+    background-color: #3c3836;
+    color: #b8bb26;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: Menlo, Consolas, Monaco, monospace;
+    font-size: 12px;
+  }
+
+  .rich-message-content pre {
+    background-color: #1d2021;
+    border: 1px solid #504945;
+    border-radius: 4px;
+    color: #b8bb26;
+    font-family: Menlo, Consolas, Monaco, monospace;
+    font-size: 12px;
+    line-height: 1.53;
+    margin: 8px 0;
+    overflow-x: auto;
+    padding: 8px;
+  }
+
+  .rich-message-content pre code {
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: inherit;
+    font-size: inherit;
+    padding: 0;
+  }
+
+  .rich-message-content ul,
+  .rich-message-content ol {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+
+  .rich-message-content ul {
+    list-style-type: disc;
+  }
+
+  .rich-message-content ol {
+    list-style-type: decimal;
+  }
+
+  .rich-message-content li {
+    margin: 4px 0;
+  }
+
+  .rich-message-content blockquote {
+    border-left: 3px solid #fabd2f;
+    color: #d5c4a1;
+    margin: 8px 0;
+    padding-left: 12px;
+  }
+
+  .rich-message-content a {
+    color: #83a598;
+    text-decoration: underline;
+  }
+
+  .rich-message-content a:hover {
+    color: #ebdbb2;
+  }
+
+  .rich-message-content mark {
+    background-color: #fabd2f;
+    color: #1d2021;
+    padding: 2px 4px;
+    border-radius: 3px;
   }
 }

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Message } from '@/shared/types';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { RichMessageContent } from './RichMessageContent';
 
 interface ChatHistoryProps {
   messages: Message[];
@@ -9,8 +10,21 @@ interface ChatHistoryProps {
 }
 
 export function ChatHistory({ messages, className = '' }: ChatHistoryProps) {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end'
+      });
+    }
+  }, [messages]);
+
   return (
-    <ScrollArea className={`flex-1 p-4 custom-scrollbar ${className}`}>
+    <ScrollArea ref={scrollAreaRef} className={`flex-1 p-4 custom-scrollbar ${className}`}>
       <div className="space-y-4">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-gruv-medium">
@@ -24,6 +38,8 @@ export function ChatHistory({ messages, className = '' }: ChatHistoryProps) {
             <MessageBubble key={message.id} message={message} />
           ))
         )}
+        {/* Invisible div to scroll to */}
+        <div ref={messagesEndRef} />
       </div>
     </ScrollArea>
   );
@@ -40,9 +56,11 @@ function MessageBubble({ message }: MessageBubbleProps) {
         <div className="flex items-start gap-2">
           <span className="text-gruv-yellow-bright">👤 YOU</span>
         </div>
-        <div className="mt-2 text-sm whitespace-pre-wrap">
-          {message.content}
-        </div>
+        {/* IAC-114: User messages from LexicalEditor should also support rich formatting */}
+        <RichMessageContent 
+          content={message.content} 
+          className="mt-2 text-sm"
+        />
         <div className="mt-2 flex justify-between text-xs text-gruv-medium">
           <span>{new Date(message.timestamp).toLocaleDateString()}</span>
           <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
@@ -93,7 +111,11 @@ function MessageBubble({ message }: MessageBubbleProps) {
           [{message.model?.name || 'AI'}]
         </span>
       </div>
-      <div className="mt-2 text-sm whitespace-pre-wrap">{message.content}</div>
+      {/* IAC-114: Use RichMessageContent for AI responses, plain text for user */}
+      <RichMessageContent 
+        content={message.content} 
+        className="mt-2 text-sm"
+      />
       <div className="mt-2 flex justify-between text-xs text-gruv-medium">
         <span>{new Date(message.timestamp).toLocaleDateString()}</span>
         <span>{new Date(message.timestamp).toLocaleTimeString()}</span>

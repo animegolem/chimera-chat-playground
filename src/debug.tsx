@@ -36,7 +36,7 @@ function DebugApp() {
   return (
     <div className="min-h-screen bg-gruv-dark p-5 text-gruv-light font-mono">
       <h1 className="text-xl text-gruv-yellow mb-4">
-        Lexical Code Block Debug
+        Lexical Code Block Debug v14.0
       </h1>
 
       <div className="bg-gruv-dark-1 p-3 rounded mb-5 text-xs">

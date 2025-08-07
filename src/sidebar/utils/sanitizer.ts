@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import { marked, Renderer } from 'marked';
+import { codeToHtml } from 'shiki';
 
 /**
  * Content sanitization utility for AI responses
@@ -27,13 +28,15 @@ export class ContentSanitizer {
     'blockquote',
     'a',
     'span',
+    'mark', // Allow mark for ==highlight== syntax
   ];
 
   private readonly allowedAttributes = {
     a: ['href', 'title'],
-    code: ['class'],
-    pre: ['class'],
-    span: ['class'],
+    code: ['class', 'style'],
+    pre: ['class', 'style'],  
+    span: ['class', 'style'],
+    mark: ['class'], // Allow mark for ==highlight== syntax
   };
 
   private constructor() {
@@ -103,17 +106,123 @@ export class ContentSanitizer {
   }
 
   /**
+   * Async version with proper Shiki highlighting
+   */
+  async sanitizeAIResponseAsync(content: string): Promise<string> {
+    if (typeof content !== 'string') {
+      console.error('Content must be string, received:', typeof content);
+      return '';
+    }
+
+    try {
+      // Step 1: Process markdown to HTML with async Shiki support
+      const htmlContent = await this.processMarkdownAsync(content);
+
+      // Step 2: Sanitize HTML with DOMPurify - simplified config
+      const sanitized = DOMPurify.sanitize(htmlContent, {
+        FORBID_TAGS: [
+          'script',
+          'object',
+          'embed',
+          'iframe',
+          'form',
+          'input',
+          'style',
+        ],
+        FORBID_ATTR: [
+          'onerror',
+          'onload',
+          'onclick',
+          'onmouseover',
+          'onfocus',
+          'onblur',
+          'onchange',
+          'onsubmit',
+        ],
+      });
+
+      return sanitized;
+    } catch (error) {
+      console.error('Error sanitizing content:', error);
+      return this.escapeHtml(content);
+    }
+  }
+
+  /**
    * Process markdown to HTML with secure renderer
+   * Includes ==highlight== preprocessing and Shiki code highlighting
    */
   private processMarkdown(content: string): string {
     const renderer = this.createSecureRenderer();
 
-    return marked(content, {
+    // Step 1: Preprocess ==highlight== syntax to <mark> tags
+    const contentWithHighlights = this.preprocessHighlights(content);
+
+    return marked(contentWithHighlights, {
       renderer,
       gfm: true,
       breaks: true,
       pedantic: false,
     }) as string;
+  }
+
+  /**
+   * Async version with proper Shiki support
+   */
+  private async processMarkdownAsync(content: string): Promise<string> {
+    // Step 1: Preprocess ==highlight== syntax to <mark> tags
+    const contentWithHighlights = this.preprocessHighlights(content);
+
+    // Step 2: Pre-process code blocks with Shiki before markdown parsing
+    const contentWithShiki = await this.preprocessCodeBlocks(contentWithHighlights);
+
+    // Step 3: Use regular renderer (code blocks already processed)
+    const renderer = this.createSecureRenderer();
+
+    return marked(contentWithShiki, {
+      renderer,
+      gfm: true,
+      breaks: true,
+      pedantic: false,
+    }) as string;
+  }
+
+  /**
+   * Preprocess code blocks with Shiki highlighting
+   */
+  private async preprocessCodeBlocks(content: string): Promise<string> {
+    // Find all code blocks with regex
+    const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+    const matches = [...content.matchAll(codeBlockRegex)];
+
+    if (matches.length === 0) {
+      return content;
+    }
+
+    let processedContent = content;
+
+    // Process each code block
+    for (const match of matches) {
+      const [fullMatch, language, code] = match;
+      try {
+        const highlightedHtml = await this.renderCodeWithShikiAsync(code, language || 'plaintext');
+        // Replace the markdown code block with the highlighted HTML
+        processedContent = processedContent.replace(fullMatch, highlightedHtml);
+      } catch (error) {
+        console.warn('Shiki highlighting failed for code block:', error);
+        // Keep original markdown if Shiki fails
+      }
+    }
+
+    return processedContent;
+  }
+
+  /**
+   * Preprocess ==text== syntax to <mark>text</mark> for highlight support
+   */
+  private preprocessHighlights(content: string): string {
+    // Convert ==text== to <mark>text</mark>, but avoid inside code blocks
+    return content.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
   }
 
   /**
@@ -146,12 +255,20 @@ export class ContentSanitizer {
       return `<img src="${safeHref}" alt="${safeText}" title="${safeTitle}" loading="lazy">`;
     };
 
-    // Override code block rendering to prevent injection
+    // Override code block rendering with Shiki syntax highlighting
     renderer.code = ({ text, lang }) => {
-      const safeCode = this.escapeHtml(text);
-      const safeLanguage = lang ? this.validateLanguage(lang) : '';
+      const safeCode = text; // Don't escape - Shiki handles this
+      const safeLanguage = lang ? this.validateLanguage(lang) : 'plaintext';
 
-      return `<pre><code class="language-${safeLanguage}">${safeCode}</code></pre>`;
+      try {
+        // Use Shiki for syntax highlighting with gruvbox theme
+        return this.renderCodeWithShiki(safeCode, safeLanguage);
+      } catch (error) {
+        console.warn('Shiki highlighting failed, falling back to plain code:', error);
+        // Fallback to plain code block
+        const escapedCode = this.escapeHtml(safeCode);
+        return `<pre><code class="language-${safeLanguage}">${escapedCode}</code></pre>`;
+      }
     };
 
     // Override inline code rendering
@@ -162,6 +279,7 @@ export class ContentSanitizer {
 
     return renderer;
   }
+
 
   /**
    * Validate URL for safety
@@ -239,10 +357,39 @@ export class ContentSanitizer {
       'sql',
       'graphql',
       'dockerfile',
+      'elixir',
+      'plaintext',
     ];
 
     const cleaned = language.toLowerCase().trim();
     return allowedLanguages.includes(cleaned) ? cleaned : 'plaintext';
+  }
+
+  /**
+   * Render code with Shiki syntax highlighting using gruvbox theme
+   */
+  private async renderCodeWithShikiAsync(code: string, language: string): Promise<string> {
+    try {
+      // Use Shiki's codeToHtml for proper syntax highlighting
+      const highlightedHtml = await codeToHtml(code.trim(), {
+        lang: language,
+        theme: 'gruvbox-dark-medium', // Match LexicalEditor theme
+      });
+      
+      console.log('Shiki highlighting successful for', language);
+      return highlightedHtml;
+    } catch (error) {
+      console.warn('Shiki highlighting failed, using fallback:', error);
+      return this.fallbackCodeRender(code, language);
+    }
+  }
+
+  /**
+   * Fallback code rendering for when Shiki is not available
+   */
+  private fallbackCodeRender(code: string, language: string): string {
+    const escapedCode = this.escapeHtml(code);
+    return `<pre style="background-color: #1d2021; border: 1px solid #504945; border-radius: 4px; color: #b8bb26; font-family: Menlo, Consolas, Monaco, monospace; font-size: 12px; line-height: 1.53; margin: 8px 0; overflow-x: auto; padding: 8px;"><code class="language-${language}">${escapedCode}</code></pre>`;
   }
 
   /**

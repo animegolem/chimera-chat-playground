@@ -5,6 +5,7 @@ export interface Message {
   type: 'user' | 'ai';
   content: string;
   timestamp: number;
+  updatedAt?: number;
   model?: ModelInfo;
 }
 

@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Message } from '@/shared/types';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RichMessageContent } from './RichMessageContent';
+import { useApp } from '@/sidebar/contexts/AppContext';
 
 interface ChatHistoryProps {
   messages: Message[];
@@ -50,49 +51,110 @@ interface MessageBubbleProps {
 }
 
 function MessageBubble({ message }: MessageBubbleProps) {
+  const { actions } = useApp();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
+
+  const handleCopy = async () => {
+    await actions.copyMessage(message.content);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditContent(message.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editContent.trim() !== message.content) {
+      await actions.updateMessage(message.id, editContent.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditContent(message.content);
+    setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (confirm('Are you sure you want to delete this message?')) {
+      await actions.deleteMessage(message.id);
+    }
+  };
   if (message.type === 'user') {
     return (
       <Card className="p-4 bg-secondary border-primary group relative">
         <div className="flex items-start gap-2">
           <span className="text-gruv-yellow-bright">👤 YOU</span>
         </div>
-        {/* IAC-114: User messages from LexicalEditor should also support rich formatting */}
-        <RichMessageContent 
-          content={message.content} 
-          className="mt-2 text-sm"
-        />
+        
+        {isEditing ? (
+          <div className="mt-2">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full p-2 bg-gruv-dark border border-gruv-medium rounded text-gruv-light font-mono text-sm resize-none min-h-[60px]"
+              rows={3}
+            />
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={handleSaveEdit}
+                className="px-2 py-1 bg-gruv-green-bright text-gruv-dark text-xs rounded hover:bg-gruv-green-bright-hover transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="px-2 py-1 bg-gruv-medium text-gruv-light text-xs rounded hover:bg-gruv-medium-soft transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <RichMessageContent 
+            content={message.content} 
+            className="mt-2 text-sm"
+          />
+        )}
+        
         <div className="mt-2 flex justify-between text-xs text-gruv-medium">
           <span>{new Date(message.timestamp).toLocaleDateString()}</span>
           <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
         </div>
 
         {/* Hover UI for user messages */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          <button
-            className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-            title="Re-prompt with this message"
-          >
-            ↻
-          </button>
-          <button
-            className="text-gruv-light hover:text-gruv-yellow-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-            title="Edit message"
-          >
-            ✎
-          </button>
-          <button
-            className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-            title="Copy message"
-          >
-            ✂
-          </button>
-          <button
-            className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-            title="Delete message"
-          >
-            🗑
-          </button>
-        </div>
+        {!isEditing && (
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+            <button
+              className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+              title="Re-prompt with this message"
+            >
+              ↻
+            </button>
+            <button
+              onClick={handleEdit}
+              className="text-gruv-light hover:text-gruv-yellow-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+              title="Edit message"
+            >
+              ✎
+            </button>
+            <button
+              onClick={handleCopy}
+              className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+              title="Copy message"
+            >
+              ✂
+            </button>
+            <button
+              onClick={handleDelete}
+              className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+              title="Delete message"
+            >
+              🗑
+            </button>
+          </div>
+        )}
       </Card>
     );
   }
@@ -130,12 +192,14 @@ function MessageBubble({ message }: MessageBubbleProps) {
           ↻
         </button>
         <button
+          onClick={handleCopy}
           className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
           title="Copy response"
         >
           ✂
         </button>
         <button
+          onClick={handleDelete}
           className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
           title="Delete response"
         >

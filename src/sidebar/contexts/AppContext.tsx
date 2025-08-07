@@ -24,6 +24,8 @@ type AppAction =
   | { type: 'UPDATE_MODEL'; modelId: string; updates: Partial<ModelInfo> }
   | { type: 'SET_CURRENT_SESSION'; session: ChatSession | null }
   | { type: 'ADD_MESSAGE'; message: Message }
+  | { type: 'DELETE_MESSAGE'; messageId: string }
+  | { type: 'UPDATE_MESSAGE'; messageId: string; content: string }
   | { type: 'SET_SELECTION'; selection: SelectionInfo | null }
   | { type: 'SET_HIGHLIGHTED_LINES'; count: number }
   | { type: 'SET_LOADING'; loading: boolean }
@@ -87,6 +89,40 @@ function appReducer(
         currentSession: updatedSession,
       };
 
+    case 'DELETE_MESSAGE':
+      if (!state.currentSession) return state;
+
+      const sessionWithDeletedMessage = {
+        ...state.currentSession,
+        messages: state.currentSession.messages.filter(
+          (msg) => msg.id !== action.messageId
+        ),
+        updatedAt: Date.now(),
+      };
+
+      return {
+        ...state,
+        currentSession: sessionWithDeletedMessage,
+      };
+
+    case 'UPDATE_MESSAGE':
+      if (!state.currentSession) return state;
+
+      const sessionWithUpdatedMessage = {
+        ...state.currentSession,
+        messages: state.currentSession.messages.map((msg) =>
+          msg.id === action.messageId
+            ? { ...msg, content: action.content, updatedAt: Date.now() }
+            : msg
+        ),
+        updatedAt: Date.now(),
+      };
+
+      return {
+        ...state,
+        currentSession: sessionWithUpdatedMessage,
+      };
+
     case 'SET_SELECTION':
       return {
         ...state,
@@ -136,6 +172,9 @@ interface AppContextType {
       updates: Partial<ModelInfo>
     ) => Promise<void>;
     sendMessage: (content: string, modelIds: string[]) => Promise<void>;
+    deleteMessage: (messageId: string) => Promise<void>;
+    updateMessage: (messageId: string, content: string) => Promise<void>;
+    copyMessage: (content: string) => Promise<void>;
     createNewSession: () => Promise<void>;
     loadSession: (sessionId: string) => Promise<void>;
   };
@@ -388,6 +427,66 @@ export function AppProvider({ children }: AppProviderProps) {
     }
   }
 
+  async function deleteMessage(messageId: string) {
+    try {
+      dispatch({ type: 'DELETE_MESSAGE', messageId });
+      
+      // Save updated session to storage
+      if (state.currentSession) {
+        const updatedSession = {
+          ...state.currentSession,
+          messages: state.currentSession.messages.filter(
+            (msg) => msg.id !== messageId
+          ),
+          updatedAt: Date.now(),
+        };
+        await storage.saveSession(updatedSession);
+      }
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', error: 'Failed to delete message' });
+    }
+  }
+
+  async function updateMessage(messageId: string, content: string) {
+    try {
+      dispatch({ type: 'UPDATE_MESSAGE', messageId, content });
+      
+      // Save updated session to storage
+      if (state.currentSession) {
+        const updatedSession = {
+          ...state.currentSession,
+          messages: state.currentSession.messages.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, content, updatedAt: Date.now() }
+              : msg
+          ),
+          updatedAt: Date.now(),
+        };
+        await storage.saveSession(updatedSession);
+      }
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', error: 'Failed to update message' });
+    }
+  }
+
+  async function copyMessage(content: string) {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = content;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', error: 'Failed to copy message' });
+    }
+  }
+
   const contextValue: AppContextType = {
     state,
     dispatch,
@@ -395,6 +494,9 @@ export function AppProvider({ children }: AppProviderProps) {
       toggleModel,
       updateModel,
       sendMessage,
+      deleteMessage,
+      updateMessage,
+      copyMessage,
       createNewSession,
       loadSession,
     },

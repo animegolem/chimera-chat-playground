@@ -23,6 +23,7 @@ import {
   CodeHighlightNode,
   CodeNode,
   $isCodeNode,
+  $createCodeNode,
 } from '@lexical/code';
 import { 
   registerCodeHighlighting, 
@@ -87,6 +88,38 @@ const HR_TRANSFORMER: ElementTransformer = {
   type: 'element',
 };
 
+// Custom Shiki-compatible code block transformer for ``` markdown shortcut
+const SHIKI_CODE_BLOCK_TRANSFORMER: TextMatchTransformer = {
+  dependencies: [CodeNode],
+  export: (node: any) => {
+    if (!$isCodeNode(node)) {
+      return null;
+    }
+    const textContent = node.getTextContent();
+    const language = node.getLanguage() || '';
+    return '```' + language + '\n' + textContent + '\n```';
+  },
+  importRegExp: /```([a-z]*)\n/,
+  regExp: /^```([a-z]*)$/,
+  replace: (textNode, match) => {
+    const language = match[1] || '';
+    
+    // Get the parent paragraph
+    const paragraph = textNode.getParent();
+    if (!paragraph) return;
+    
+    // Create a new code node
+    const codeNode = $createCodeNode(language);
+    
+    // Replace the paragraph with the code node
+    paragraph.replace(codeNode);
+    
+    // Focus the code node
+    codeNode.selectStart();
+  },
+  trigger: '```',
+  type: 'text-match',
+};
 
 interface LexicalEditorProps {
   content: string;
@@ -119,7 +152,8 @@ function CodeHighlightPlugin() {
     
     // Shiki will handle theme and language loading dynamically
     // The nightly build includes support for 100+ languages
-    return registerCodeHighlighting(editor, ShikiTokenizer);
+    // Cast to any to bypass version mismatch between lexical and @lexical/code-shiki
+    return registerCodeHighlighting(editor as any, ShikiTokenizer);
   }, [editor]);
 
   return null;
@@ -261,11 +295,13 @@ function MarkdownDebugPlugin() {
   useEffect(() => {
     console.log('IAC-119: Migrated to Shiki from Prism.js');
     console.log('IAC-112 Complete: Using TRANSFORMERS + HR_TRANSFORMER');
-    console.log('Active transformer count:', TRANSFORMERS.length + 1);
+    console.log('Active transformer count:', TRANSFORMERS.length + 2);
+    console.log('NOTE: Using custom SHIKI_CODE_BLOCK_TRANSFORMER for code blocks');
 
     // List what transformers are active
     console.log('Active transformers:');
     console.log('- HR_TRANSFORMER (---)');
+    console.log('- SHIKI_CODE_BLOCK_TRANSFORMER (```)');
     TRANSFORMERS.forEach((transformer) => {
       // Some transformers don't have regExp (like multiline transformers)
       const regex = (transformer as any).regExp?.source || 'N/A';
@@ -444,7 +480,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           getMarkdown: () => {
             let markdown = '';
             editor.getEditorState().read(() => {
-              markdown = $convertToMarkdownString([HR_TRANSFORMER, ...TRANSFORMERS]);
+              markdown = $convertToMarkdownString([HR_TRANSFORMER, SHIKI_CODE_BLOCK_TRANSFORMER, ...TRANSFORMERS]);
             });
             return markdown;
           },
@@ -507,7 +543,7 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <HorizontalRulePlugin />
           <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />
           <MarkdownShortcutPlugin
-            transformers={[HR_TRANSFORMER, ...TRANSFORMERS]}
+            transformers={[HR_TRANSFORMER, SHIKI_CODE_BLOCK_TRANSFORMER, ...TRANSFORMERS]}
           />
           <MarkdownDebugPlugin />
           <KeyboardShortcutPlugin onKeyDown={onKeyDown} />

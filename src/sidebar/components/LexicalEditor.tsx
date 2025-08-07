@@ -41,6 +41,7 @@ import {
   TRANSFORMERS,
   ElementTransformer,
   $convertToMarkdownString,
+  CODE,
 } from '@lexical/markdown';
 import {
   $createHorizontalRuleNode,
@@ -288,14 +289,15 @@ function MarkdownDebugPlugin() {
   useEffect(() => {
     console.log('IAC-119: Migrated to Shiki from Prism.js');
     console.log('IAC-112 Complete: Using TRANSFORMERS + HR_TRANSFORMER');
-    console.log('Active transformer count:', TRANSFORMERS.length + 2);
-    console.log('NOTE: Using custom SHIKI_CODE_BLOCK_TRANSFORMER for code blocks');
+    const filteredTransformers = TRANSFORMERS.filter(t => t !== CODE);
+    console.log('Active transformer count:', filteredTransformers.length + 2);
+    console.log('NOTE: Using custom SHIKI_CODE_BLOCK_TRANSFORMER, excluding built-in CODE');
 
     // List what transformers are active
     console.log('Active transformers:');
     console.log('- HR_TRANSFORMER (---)');
     console.log('- SHIKI_CODE_BLOCK_TRANSFORMER (```)');
-    TRANSFORMERS.forEach((transformer) => {
+    filteredTransformers.forEach((transformer) => {
       // Some transformers don't have regExp (like multiline transformers)
       const regex = (transformer as any).regExp?.source || 'N/A';
       console.log(`- ${transformer.type}: ${regex}`);
@@ -473,7 +475,11 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           getMarkdown: () => {
             let markdown = '';
             editor.getEditorState().read(() => {
-              markdown = $convertToMarkdownString([HR_TRANSFORMER, SHIKI_CODE_BLOCK_TRANSFORMER, ...TRANSFORMERS]);
+              markdown = $convertToMarkdownString([
+                HR_TRANSFORMER, 
+                SHIKI_CODE_BLOCK_TRANSFORMER, 
+                ...TRANSFORMERS.filter(t => t !== CODE)
+              ]);
             });
             return markdown;
           },
@@ -536,7 +542,11 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <HorizontalRulePlugin />
           <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />
           <MarkdownShortcutPlugin
-            transformers={[HR_TRANSFORMER, SHIKI_CODE_BLOCK_TRANSFORMER, ...TRANSFORMERS]}
+            transformers={[
+              HR_TRANSFORMER, 
+              SHIKI_CODE_BLOCK_TRANSFORMER, 
+              ...TRANSFORMERS.filter(t => t !== CODE)
+            ]}
           />
           <MarkdownDebugPlugin />
           <KeyboardShortcutPlugin onKeyDown={onKeyDown} />

@@ -22,9 +22,9 @@ import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import {
   CodeHighlightNode,
   CodeNode,
-  registerCodeHighlighting,
   $isCodeNode,
 } from '@lexical/code';
+import { registerCodeHighlighting } from '@lexical/code-shiki';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
 import { LinkPlugin as LexicalLinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import {
@@ -105,7 +105,7 @@ export interface LexicalEditorRef {
   getMarkdown: () => string;
 }
 
-// Code highlighting plugin for proper code block support
+// Code highlighting plugin for proper code block support with Shiki
 function CodeHighlightPlugin() {
   const [editor] = useLexicalComposerContext();
 
@@ -250,6 +250,7 @@ function MarkdownDebugPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
+    console.log('IAC-119: Migrated to Shiki from Prism.js');
     console.log('IAC-112 Complete: Using TRANSFORMERS + HR_TRANSFORMER');
     console.log('Active transformer count:', TRANSFORMERS.length + 1);
 

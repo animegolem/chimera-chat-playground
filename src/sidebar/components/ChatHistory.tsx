@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Message } from '@/shared/types';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -54,9 +54,30 @@ function MessageBubble({ message }: MessageBubbleProps) {
   const { actions } = useApp();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      adjustTextareaHeight();
+      textareaRef.current.focus();
+    }
+  }, [isEditing, adjustTextareaHeight]);
 
   const handleCopy = async () => {
     await actions.copyMessage(message.content);
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 1000);
   };
 
   const handleEdit = () => {
@@ -77,9 +98,16 @@ function MessageBubble({ message }: MessageBubbleProps) {
   };
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this message?')) {
-      await actions.deleteMessage(message.id);
-    }
+    await actions.deleteMessage(message.id);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
   };
   if (message.type === 'user') {
     return (
@@ -91,10 +119,14 @@ function MessageBubble({ message }: MessageBubbleProps) {
         {isEditing ? (
           <div className="mt-2">
             <textarea
+              ref={textareaRef}
               value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              className="w-full p-2 bg-gruv-dark border border-gruv-medium rounded text-gruv-light font-mono text-sm resize-none min-h-[60px]"
-              rows={3}
+              onChange={(e) => {
+                setEditContent(e.target.value);
+                adjustTextareaHeight();
+              }}
+              className="w-full p-2 bg-gruv-dark border border-gruv-medium rounded text-gruv-light font-mono text-sm resize-none min-h-[60px] max-h-[200px] overflow-y-auto"
+              placeholder="Edit your message..."
             />
             <div className="mt-2 flex gap-2">
               <button
@@ -124,7 +156,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         </div>
 
         {/* Hover UI for user messages */}
-        {!isEditing && (
+        {!isEditing && !showDeleteConfirm && (
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
             <button
               className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
@@ -141,18 +173,41 @@ function MessageBubble({ message }: MessageBubbleProps) {
             </button>
             <button
               onClick={handleCopy}
-              className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-              title="Copy message"
+              className={`text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors ${
+                copyFeedback ? 'animate-spin text-gruv-blue-bright' : ''
+              }`}
+              title={copyFeedback ? "Copied!" : "Copy message"}
             >
               ✂
             </button>
             <button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
               title="Delete message"
             >
               🗑
             </button>
+          </div>
+        )}
+
+        {/* Delete confirmation modal */}
+        {showDeleteConfirm && (
+          <div className="absolute top-2 right-2 bg-gruv-dark border border-gruv-medium rounded-md p-2 shadow-lg z-10">
+            <div className="text-xs text-gruv-light mb-2">Delete this message?</div>
+            <div className="flex gap-1">
+              <button
+                onClick={handleDelete}
+                className="px-2 py-1 bg-gruv-red-bright text-gruv-dark text-xs rounded hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+              <button
+                onClick={handleDeleteCancel}
+                className="px-2 py-1 bg-gruv-medium text-gruv-light text-xs rounded hover:bg-gruv-medium-soft transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </Card>
@@ -184,28 +239,53 @@ function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       {/* Hover UI for AI messages */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-        <button
-          className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-          title="Reload response"
-        >
-          ↻
-        </button>
-        <button
-          onClick={handleCopy}
-          className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-          title="Copy response"
-        >
-          ✂
-        </button>
-        <button
-          onClick={handleDelete}
-          className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
-          title="Delete response"
-        >
-          🗑
-        </button>
-      </div>
+      {!showDeleteConfirm && (
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+          <button
+            className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+            title="Reload response"
+          >
+            ↻
+          </button>
+          <button
+            onClick={handleCopy}
+            className={`text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors ${
+              copyFeedback ? 'animate-spin text-gruv-blue-bright' : ''
+            }`}
+            title={copyFeedback ? "Copied!" : "Copy response"}
+          >
+            ✂
+          </button>
+          <button
+            onClick={handleDeleteClick}
+            className="text-gruv-light hover:text-gruv-red-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
+            title="Delete response"
+          >
+            🗑
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="absolute top-2 right-2 bg-gruv-dark border border-gruv-medium rounded-md p-2 shadow-lg z-10">
+          <div className="text-xs text-gruv-light mb-2">Delete this response?</div>
+          <div className="flex gap-1">
+            <button
+              onClick={handleDelete}
+              className="px-2 py-1 bg-gruv-red-bright text-gruv-dark text-xs rounded hover:bg-red-600 transition-colors"
+            >
+              Delete
+            </button>
+            <button
+              onClick={handleDeleteCancel}
+              className="px-2 py-1 bg-gruv-medium text-gruv-light text-xs rounded hover:bg-gruv-medium-soft transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

@@ -138,6 +138,10 @@ async function handleMessage(
         await handleToggleModel(message.modelId!, sendResponse);
         break;
 
+      case 'LLM_CHAT_REQUEST':
+        await handleLLMChatRequest(message.llmRequest!, sendResponse);
+        break;
+
       default:
         console.warn('Unknown message type:', message.type);
         sendResponse({
@@ -239,6 +243,53 @@ async function handleToggleModel(
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to toggle model',
+    });
+  }
+}
+
+async function handleLLMChatRequest(
+  llmRequest: any,
+  sendResponse: (response: ResponseMessage) => void
+) {
+  try {
+    // Make direct fetch request to Ollama from background script (bypasses CORS)
+    const response = await fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: llmRequest.model || 'gemma3:4b',
+        messages: llmRequest.messages,
+        stream: false,
+        options: {
+          temperature: llmRequest.temperature || 0.7,
+          num_predict: llmRequest.maxTokens || 2048
+        }
+      })
+    });
+
+    if (!response.ok) {
+      sendResponse({
+        success: false,
+        error: `Ollama API error: ${response.status} ${response.statusText}`
+      });
+      return;
+    }
+
+    const data = await response.json();
+    
+    sendResponse({
+      success: true,
+      response: data.message.content,
+      model: data.model,
+      tokenCount: data.eval_count || 0
+    });
+
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to chat with LLM'
     });
   }
 }

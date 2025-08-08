@@ -14,7 +14,8 @@ export interface BackgroundMessage {
     | 'TAB_GROUP_NAMED'
     | 'TAB_GROUP_CREATED'
     | 'CONTEXT_MENU_SELECTION'
-    | 'EXTENSION_UPDATED';
+    | 'EXTENSION_UPDATED'
+    | 'LLM_RESPONSE';
 
   // Tab group events
   groupId?: number;
@@ -60,6 +61,7 @@ export interface SidebarMessage {
     | 'GET_SELECTION'
     | 'HIGHLIGHT_TEXT'
     | 'SEND_TO_LLM'
+    | 'LLM_CHAT_REQUEST'
     | 'UPDATE_MODEL_SETTINGS'
     | 'TOGGLE_MODEL';
 
@@ -71,11 +73,23 @@ export interface SidebarMessage {
   tabId?: number;
   searchText?: string;
 
-  // LLM interaction
+  // LLM interaction  
   prompt?: string;
   models?: string[]; // Model IDs to use
   includeSelection?: boolean;
   includePageContent?: boolean;
+  
+  // LLM Chat Request
+  llmRequest?: {
+    messages: Array<{
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+      timestamp?: number;
+    }>;
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+  };
 
   // Model management
   modelId?: string;

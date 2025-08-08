@@ -16,9 +16,7 @@ import {
 import { DEFAULT_MODELS } from '@/shared/constants';
 import { storage } from '@/lib/storage';
 import { BackgroundMessage, ContentMessage } from '@/shared/messages';
-import { LLMManager } from '@/lib/llm/manager';
-import { createOllamaProvider } from '@/lib/llm/providers/ollama';
-import { LLMRequest } from '@/lib/llm/types';
+// LLM requests now go through background script to bypass CORS
 
 // Action types
 type AppAction =
@@ -199,20 +197,7 @@ export function AppProvider({ children }: AppProviderProps) {
     setupMessageListeners();
   }, []);
 
-  async function initializeLLMService() {
-    try {
-      const llmManager = LLMManager.getInstance();
-      
-      // Initialize Ollama provider
-      const ollamaProvider = createOllamaProvider();
-      await llmManager.registerProvider(ollamaProvider);
-      
-      console.log('LLM service initialized with Ollama provider');
-    } catch (error) {
-      console.error('Failed to initialize LLM service:', error);
-      // Don't fail the entire app if LLM service fails
-    }
-  }
+  // LLM service now handled by background script - no initialization needed
 
   async function initializeApp() {
     try {
@@ -244,8 +229,7 @@ export function AppProvider({ children }: AppProviderProps) {
         await createNewSession();
       }
 
-      // Initialize LLM service
-      await initializeLLMService();
+      // LLM service handled by background script
     } catch (error) {
       console.error('Failed to initialize app:', error);
       dispatch({ type: 'SET_ERROR', error: 'Failed to initialize app' });
@@ -386,9 +370,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
       dispatch({ type: 'ADD_MESSAGE', message: userMessage });
 
-      // Send to LLM service and handle response
-      const llmManager = LLMManager.getInstance();
-      
+      // Send LLM request through background script (bypasses CORS)
       // Build conversation history
       const messages = state.currentSession.messages.map(msg => ({
         role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
@@ -403,36 +385,40 @@ export function AppProvider({ children }: AppProviderProps) {
         timestamp: Date.now()
       });
 
-      // Get the first available model from Ollama models (since we're using local models)
-      const allModels = await llmManager.getAllModels();
-      const ollamaModels = allModels.get('ollama') || [];
-      const modelToUse = ollamaModels.length > 0 ? ollamaModels[0].id : 'gemma3:latest';
-
-      const llmRequest: LLMRequest = {
+      const llmRequest = {
         messages,
-        model: modelToUse,
+        model: 'gemma3:4b', // Use a reliable model
         temperature: 0.7,
         maxTokens: 2048,
       };
 
+      const response = await browser.runtime.sendMessage({
+        type: 'LLM_CHAT_REQUEST',
+        llmRequest,
+      });
+
+      // Handle case where response is undefined
+      if (!response) {
+        throw new Error('No response from background script');
+      }
+
       try {
-        const response = await llmManager.chat(llmRequest);
-        
-        const aiMessage: Message = {
-          id: `msg-${Date.now()}-ai`,
-          type: 'ai',
-          content: response.content,
-          timestamp: Date.now(),
-          model: {
-            id: modelToUse,
-            name: modelToUse,
-            emoji: '🦙', // Default to llama emoji for Ollama models
-            color: '#8ec07c',
-            type: 'local',
-            active: true,
-            settings: { temperature: 0.7, systemPrompt: '' },
-          },
-        };
+        if (response.success) {
+          const aiMessage: Message = {
+            id: `msg-${Date.now()}-ai`,
+            type: 'ai',
+            content: response.response || 'No response from model',
+            timestamp: Date.now(),
+            model: {
+              id: response.model || 'gemma3:4b',
+              name: response.model || 'Gemma 3 4B',
+              emoji: '💎', // Gemma emoji
+              color: '#83a598',
+              type: 'local',
+              active: true,
+              settings: { temperature: 0.7, systemPrompt: '' },
+            },
+          };
 
         dispatch({ type: 'ADD_MESSAGE', message: aiMessage });
         
@@ -442,16 +428,43 @@ export function AppProvider({ children }: AppProviderProps) {
           messages: [...state.currentSession.messages, userMessage, aiMessage],
           updatedAt: Date.now(),
         };
-        await storage.saveSession(updatedSession);
-
+          await storage.saveSession(updatedSession);
+        } else {
+          // Handle API error from background script
+          const errorMessage: Message = {
+            id: `msg-${Date.now()}-ai-error`,
+            type: 'ai',
+            content: `Sorry, I encountered an error: ${response.error || 'Unknown error'}`,
+            timestamp: Date.now(),
+            model: {
+              id: 'error',
+              name: 'Error',
+              emoji: '⚠️',
+              color: '#fb4934',
+              type: 'local',
+              active: false,
+              settings: { temperature: 0, systemPrompt: '' },
+            },
+          };
+          
+          dispatch({ type: 'ADD_MESSAGE', message: errorMessage });
+          
+          // Save session with both user message and error
+          const updatedSession = {
+            ...state.currentSession,
+            messages: [...state.currentSession.messages, userMessage, errorMessage],
+            updatedAt: Date.now(),
+          };
+          await storage.saveSession(updatedSession);
+        }
       } catch (error) {
         console.error('LLM request failed:', error);
         
-        // Add error message
+        // Add error message for network/communication errors
         const errorMessage: Message = {
           id: `msg-${Date.now()}-ai-error`,
           type: 'ai',
-          content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          content: `Sorry, I encountered a communication error: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
           model: {
             id: 'error',
@@ -466,7 +479,7 @@ export function AppProvider({ children }: AppProviderProps) {
         
         dispatch({ type: 'ADD_MESSAGE', message: errorMessage });
         
-        // Save session with user message only (error case)
+        // Save session with user message and error
         const updatedSession = {
           ...state.currentSession,
           messages: [...state.currentSession.messages, userMessage, errorMessage],

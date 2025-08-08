@@ -2,13 +2,13 @@
 
 > An experimental Firefox extension built as a platform for testing AI coding automations and showcasing LLM-assisted development.
 
-## 🚀 Current Status (Updated 2025-08-06)
+## 🚀 Current Status (Updated 2025-08-08)
 
-- **Overall Progress**: Phase 3 → Phase 4 transition (95% → LLM Integration)
-- **Extension**: Fully functional with rich text editor, message passing, and smart paste
-- **Next Priority**: Rich message rendering (Phase 3.7: Issues IAC-112 through IAC-116)
-- **LLM Ready**: Ollama setup confirmed, architecture prepared for Phase 4
-- **Technical Debt**: ✅ Completed systematic Lexical editor cleanup (IAC-102 through IAC-111)
+- **Overall Progress**: Phase 4 in progress - LLM Integration 🚀
+- **Extension**: Fully functional UI with rich text editor, code highlighting, and message passing
+- **Current Focus**: LLM provider implementation (Issues IAC-129 through IAC-133 created in Linear)
+- **Phase 3 Complete**: ✅ Rich message rendering, code block copy buttons, language detection
+- **Technical Updates**: ✅ Upgraded to Lexical v0.34.0 stable, Shiki integration complete
 
 ## Project Philosophy
 
@@ -126,41 +126,44 @@
     - Integration with TRANSFORMERS for security ✅
     - Critical for Phase 4 LLM integration UX ✅
 
-11.7. **Rich Message Rendering** 🔄 IN PROGRESS (Phase 3.7)
-    - Markdown export from Lexical editor (IAC-112) ⏳
-    - RichMessageContent component for AI responses (IAC-113) ⏳
-    - ChatHistory integration with rich text (IAC-114) ⏳
-    - Copy-as-markdown functionality (IAC-115) ⏳
-    - Consistent styling between input/output (IAC-116) ⏳
+11.7. **Rich Message Rendering** ✅ COMPLETE (Phase 3.7)
+    - Markdown export from Lexical editor (IAC-112) ✅
+    - RichMessageContent component for AI responses (IAC-113) ✅
+    - ChatHistory integration with rich text (IAC-114) ✅
+    - Copy-as-markdown functionality (IAC-115) ✅
+    - Consistent styling between input/output (IAC-116) ✅
 
 12. **State Management** DONE !!!
     - Implement useReducer for complex state ✅
     - Add persistence with browser.storage ✅
     - Create action creators ✅
 
-## Phase 4: LLM Integration
+## Phase 4: LLM Integration 🔄 IN PROGRESS
 
 ### Objectives
 
-- Local and API model support
-- Tab naming automation
+- Local and API model support ⏳
+- Tab naming automation ⏳
+- Streaming responses ⏳
 
 ### Tasks
 
-13. **Local LLM Connection**
-    - Implement Ollama/llamafile adapter
-    - Add connection status monitoring
-    - Create fallback handling
+13. **Local LLM Connection** ⏳
+    - LLM Service Base Architecture (IAC-129) ⏳
+    - Implement Ollama provider (IAC-130) ⏳
+    - Add connection status monitoring ⏳
+    - Create fallback handling ⏳
 
-14. **API Integration**
-    - OpenRouter client implementation
-    - Secure API key management
-    - Rate limiting and error handling
+14. **API Integration** ⏳
+    - OpenRouter provider implementation (IAC-131) ⏳
+    - Secure API key management ⏳
+    - Rate limiting and error handling ⏳
 
-15. **Tab Group Naming**
-    - Always-on background monitoring
-    - Context extraction from tabs
-    - LLM prompt engineering
+15. **Chat Interface Integration** ⏳
+    - Wire up LLM to sidebar (IAC-132) ⏳
+    - Implement streaming UI (IAC-133) ⏳
+    - Tab group auto-naming ⏳
+    - Context injection for chat ⏳
 
 ## Phase 5: Advanced Features
 
@@ -218,15 +221,16 @@
 - **P0: Foundation** (Issues 1-3) ✅ COMPLETE
 - **P1: Build System** (Issues 4-6) ✅ COMPLETE  
 - **P2: Core Architecture** (Issues 7-9) ✅ COMPLETE
-- **P3: UI Development** (Issues 10-12) ✅ 95% COMPLETE
-  - **P3.6: Smart Paste** (Issue 111) ✅ COMPLETE - Bridge to Phase 4 ready!
-  - **P3.7: Rich Message Rendering** (Issues 112-116) 🔄 IN PROGRESS
-    - IAC-112: Markdown export from Lexical
-    - IAC-113: RichMessageContent component  
-    - IAC-114: ChatHistory rich text integration
-    - IAC-115: Copy-as-markdown functionality
-    - IAC-116: Consistent input/output styling
-- **P4: LLM Features** (Issues 13-15) ⏳ READY (Ollama setup confirmed)
+- **P3: UI Development** (Issues 10-12) ✅ COMPLETE
+  - **P3.6: Smart Paste** (Issue 111) ✅ COMPLETE
+  - **P3.7: Rich Message Rendering** (Issues 112-116) ✅ COMPLETE
+- **P4: LLM Features** 🔄 IN PROGRESS
+  - IAC-129: LLM Service Base Architecture (Created in Linear)
+  - IAC-130: Implement Ollama Provider (Created in Linear)
+  - IAC-131: Add OpenRouter API Provider (Created in Linear)
+  - IAC-132: Integrate LLM Service with Sidebar Chat (Created in Linear)
+  - IAC-133: Implement Message Streaming UI (Created in Linear)
+  - Additional issues to be created for remaining Phase 4 features
 - **P5: Advanced Features** (Issues 16-18)
 - **P6: Polish** (Issues 19-21)
 

@@ -11,7 +11,6 @@ interface ChatHistoryProps {
 }
 
 export function ChatHistory({ messages, className = '' }: ChatHistoryProps) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -25,7 +24,7 @@ export function ChatHistory({ messages, className = '' }: ChatHistoryProps) {
   }, [messages]);
 
   return (
-    <ScrollArea ref={scrollAreaRef} className={`flex-1 p-4 custom-scrollbar ${className}`}>
+    <ScrollArea className={`flex-1 p-4 custom-scrollbar ${className}`}>
       <div className="space-y-4">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-gruv-medium">
@@ -63,7 +62,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+      textarea.style.height = Math.min(textarea.scrollHeight, 450) + 'px';
     }
   }, []);
 
@@ -77,7 +76,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
   const handleCopy = async () => {
     await actions.copyMessage(message.content);
     setCopyFeedback(true);
-    setTimeout(() => setCopyFeedback(false), 1500);
+    setTimeout(() => setCopyFeedback(false), 1000);
   };
 
   const handleEdit = () => {
@@ -125,7 +124,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
                 setEditContent(e.target.value);
                 adjustTextareaHeight();
               }}
-              className="w-full p-2 bg-gruv-dark border border-gruv-medium rounded text-gruv-light font-mono text-sm resize-none min-h-[60px] max-h-[200px] overflow-y-auto"
+              className="w-full p-2 bg-gruv-dark border border-gruv-medium rounded text-gruv-light font-mono text-sm resize-none min-h-[60px] max-h-[450px] overflow-y-auto"
               placeholder="Edit your message..."
             />
             <div className="mt-2 flex gap-2">
@@ -156,7 +155,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         </div>
 
         {/* Hover UI for user messages */}
-        {!isEditing && !showDeleteConfirm && !copyFeedback && (
+        {!isEditing && !showDeleteConfirm && (
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
             <button
               className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
@@ -175,8 +174,9 @@ function MessageBubble({ message }: MessageBubbleProps) {
               onClick={handleCopy}
               className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
               title="Copy message"
+              style={copyFeedback ? { color: '#b8bb26' } : {}}
             >
-              ✂
+              {copyFeedback ? '✓' : '✂'}
             </button>
             <button
               onClick={handleDeleteClick}
@@ -188,12 +188,6 @@ function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
-        {/* Copy feedback popup */}
-        {copyFeedback && (
-          <div className="absolute top-2 right-2 bg-gruv-green-bright text-gruv-dark px-2 py-1 rounded text-xs font-medium shadow-lg z-10">
-            Copied!
-          </div>
-        )}
 
         {/* Delete confirmation modal */}
         {showDeleteConfirm && (
@@ -244,7 +238,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       {/* Hover UI for AI messages */}
-      {!showDeleteConfirm && !copyFeedback && (
+      {!showDeleteConfirm && (
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
           <button
             className="text-gruv-light hover:text-gruv-green-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
@@ -256,8 +250,9 @@ function MessageBubble({ message }: MessageBubbleProps) {
             onClick={handleCopy}
             className="text-gruv-light hover:text-gruv-blue-bright p-1 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors"
             title="Copy response"
+            style={copyFeedback ? { color: '#b8bb26' } : {}}
           >
-            ✂
+            {copyFeedback ? '✓' : '✂'}
           </button>
           <button
             onClick={handleDeleteClick}
@@ -269,12 +264,6 @@ function MessageBubble({ message }: MessageBubbleProps) {
         </div>
       )}
 
-      {/* Copy feedback popup */}
-      {copyFeedback && (
-        <div className="absolute top-2 right-2 bg-gruv-green-bright text-gruv-dark px-2 py-1 rounded text-xs font-medium shadow-lg z-10">
-          Copied!
-        </div>
-      )}
 
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (

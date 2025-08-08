@@ -369,8 +369,14 @@ export class ContentSanitizer {
         theme: 'gruvbox-dark-medium', // Match LexicalEditor theme
       });
       
+      // Add data-language attribute to preserve language info for copy buttons
+      const withLanguageAttr = highlightedHtml.replace(
+        '<pre class="shiki',
+        `<pre data-language="${language}" class="shiki`
+      );
+      
       console.log('Shiki highlighting successful for', language);
-      return highlightedHtml;
+      return withLanguageAttr;
     } catch (error) {
       console.warn('Shiki highlighting failed, using fallback:', error);
       return this.fallbackCodeRender(code, language);

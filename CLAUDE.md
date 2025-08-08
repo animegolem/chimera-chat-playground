@@ -77,6 +77,12 @@ Key files:
 
 See `claude-catchup.md` for detailed investigation history. The hybrid approach compensates for these limitations.
 
+### Lexical v0.34.0 Stable
+✅ **Updated**: Migrated from nightly builds to stable v0.34.0 release
+- All `@lexical/*` packages updated from `v0.33.2-nightly` to `^0.34.0`
+- Shiki integration fully compatible with stable release
+- Language detection and code block highlighting working correctly
+
 ### State Management Pattern
 React Context + useReducer with browser.storage persistence:
 - `src/sidebar/contexts/AppContext.tsx` - Main state management

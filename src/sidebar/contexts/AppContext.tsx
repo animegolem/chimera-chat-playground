@@ -286,12 +286,18 @@ export function AppProvider({ children }: AppProviderProps) {
         modelId,
       });
 
+      // Handle case where response is undefined (background script not responding)
+      if (!response) {
+        dispatch({ type: 'SET_ERROR', error: 'No response from background script' });
+        return;
+      }
+
       if (response.success) {
         // Reload models to reflect change
         const models = await storage.getModels();
         dispatch({ type: 'SET_MODELS', models });
       } else {
-        dispatch({ type: 'SET_ERROR', error: response.error });
+        dispatch({ type: 'SET_ERROR', error: response.error || 'Unknown error' });
       }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: 'Failed to toggle model' });
@@ -306,12 +312,18 @@ export function AppProvider({ children }: AppProviderProps) {
         modelSettings: updates,
       });
 
+      // Handle case where response is undefined (background script not responding)
+      if (!response) {
+        dispatch({ type: 'SET_ERROR', error: 'No response from background script' });
+        return;
+      }
+
       if (response.success) {
         // Reload models to reflect change
         const models = await storage.getModels();
         dispatch({ type: 'SET_MODELS', models });
       } else {
-        dispatch({ type: 'SET_ERROR', error: response.error });
+        dispatch({ type: 'SET_ERROR', error: response.error || 'Unknown error' });
       }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: 'Failed to update model' });

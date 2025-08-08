@@ -16,6 +16,9 @@ import {
 import { DEFAULT_MODELS } from '@/shared/constants';
 import { storage } from '@/lib/storage';
 import { BackgroundMessage, ContentMessage } from '@/shared/messages';
+import { LLMManager } from '@/lib/llm/manager';
+import { createOllamaProvider } from '@/lib/llm/providers/ollama';
+import { LLMRequest } from '@/lib/llm/types';
 
 // Action types
 type AppAction =
@@ -196,6 +199,21 @@ export function AppProvider({ children }: AppProviderProps) {
     setupMessageListeners();
   }, []);
 
+  async function initializeLLMService() {
+    try {
+      const llmManager = LLMManager.getInstance();
+      
+      // Initialize Ollama provider
+      const ollamaProvider = createOllamaProvider();
+      await llmManager.registerProvider(ollamaProvider);
+      
+      console.log('LLM service initialized with Ollama provider');
+    } catch (error) {
+      console.error('Failed to initialize LLM service:', error);
+      // Don't fail the entire app if LLM service fails
+    }
+  }
+
   async function initializeApp() {
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
@@ -225,6 +243,9 @@ export function AppProvider({ children }: AppProviderProps) {
       if (!currentSessionId) {
         await createNewSession();
       }
+
+      // Initialize LLM service
+      await initializeLLMService();
     } catch (error) {
       console.error('Failed to initialize app:', error);
       dispatch({ type: 'SET_ERROR', error: 'Failed to initialize app' });
@@ -365,19 +386,47 @@ export function AppProvider({ children }: AppProviderProps) {
 
       dispatch({ type: 'ADD_MESSAGE', message: userMessage });
 
-      // TODO: Send to LLM service and handle response
-      // For now, add a placeholder AI response
-      setTimeout(() => {
+      // Send to LLM service and handle response
+      const llmManager = LLMManager.getInstance();
+      
+      // Build conversation history
+      const messages = state.currentSession.messages.map(msg => ({
+        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }));
+
+      // Add current message
+      messages.push({
+        role: 'user' as const,
+        content,
+        timestamp: Date.now()
+      });
+
+      // Get the first available model from Ollama models (since we're using local models)
+      const allModels = await llmManager.getAllModels();
+      const ollamaModels = allModels.get('ollama') || [];
+      const modelToUse = ollamaModels.length > 0 ? ollamaModels[0].id : 'gemma3:latest';
+
+      const llmRequest: LLMRequest = {
+        messages,
+        model: modelToUse,
+        temperature: 0.7,
+        maxTokens: 2048,
+      };
+
+      try {
+        const response = await llmManager.chat(llmRequest);
+        
         const aiMessage: Message = {
           id: `msg-${Date.now()}-ai`,
           type: 'ai',
-          content:
-            'This is a placeholder response. LLM integration coming in Phase 4!',
+          content: response.content,
           timestamp: Date.now(),
           model: {
-            id: modelIds[0],
-            name: 'Placeholder',
-            emoji: '🤖',
+            id: modelToUse,
+            name: modelToUse,
+            emoji: '🦙', // Default to llama emoji for Ollama models
             color: '#8ec07c',
             type: 'local',
             active: true,
@@ -386,16 +435,45 @@ export function AppProvider({ children }: AppProviderProps) {
         };
 
         dispatch({ type: 'ADD_MESSAGE', message: aiMessage });
-      }, 1000);
+        
+        // Update and save session with both messages
+        const updatedSession = {
+          ...state.currentSession,
+          messages: [...state.currentSession.messages, userMessage, aiMessage],
+          updatedAt: Date.now(),
+        };
+        await storage.saveSession(updatedSession);
 
-      // Save session
-      const updatedSession = {
-        ...state.currentSession,
-        messages: [...state.currentSession.messages, userMessage],
-        updatedAt: Date.now(),
-      };
-
-      await storage.saveSession(updatedSession);
+      } catch (error) {
+        console.error('LLM request failed:', error);
+        
+        // Add error message
+        const errorMessage: Message = {
+          id: `msg-${Date.now()}-ai-error`,
+          type: 'ai',
+          content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          timestamp: Date.now(),
+          model: {
+            id: 'error',
+            name: 'Error',
+            emoji: '⚠️',
+            color: '#fb4934',
+            type: 'local',
+            active: false,
+            settings: { temperature: 0, systemPrompt: '' },
+          },
+        };
+        
+        dispatch({ type: 'ADD_MESSAGE', message: errorMessage });
+        
+        // Save session with user message only (error case)
+        const updatedSession = {
+          ...state.currentSession,
+          messages: [...state.currentSession.messages, userMessage, errorMessage],
+          updatedAt: Date.now(),
+        };
+        await storage.saveSession(updatedSession);
+      }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: 'Failed to send message' });
     } finally {

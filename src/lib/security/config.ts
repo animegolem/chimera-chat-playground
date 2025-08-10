@@ -1,0 +1,91 @@
+/**
+ * Security configuration constants
+ */
+
+export const SECURITY_CONFIG = {
+  ALLOWED_TAGS: [
+    'p',
+    'br',
+    'strong',
+    'em',
+    'code',
+    'pre',
+    'ul',
+    'ol',
+    'li',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'blockquote',
+    'a',
+    'span',
+    'mark',
+  ],
+
+  ALLOWED_ATTRIBUTES: {
+    a: ['href', 'title'],
+    code: ['class', 'style'],
+    pre: ['class', 'style', 'data-language'],
+    span: ['class', 'style'],
+    mark: ['class'],
+  },
+
+  FORBIDDEN_TAGS: [
+    'script',
+    'object',
+    'embed',
+    'iframe',
+    'form',
+    'input',
+    'style',
+  ],
+
+  FORBIDDEN_ATTRIBUTES: [
+    'onerror',
+    'onload',
+    'onclick',
+    'onmouseover',
+    'onfocus',
+    'onblur',
+    'onchange',
+    'onsubmit',
+  ],
+
+  ALLOWED_PROTOCOLS: ['https:', 'http:', 'mailto:'],
+
+  ALLOWED_IMAGE_PROTOCOLS: ['https:', 'data:'],
+
+  ALLOWED_LANGUAGES: [
+    'javascript',
+    'typescript',
+    'python',
+    'java',
+    'cpp',
+    'c',
+    'csharp',
+    'go',
+    'rust',
+    'ruby',
+    'php',
+    'swift',
+    'kotlin',
+    'html',
+    'css',
+    'scss',
+    'json',
+    'xml',
+    'yaml',
+    'markdown',
+    'bash',
+    'shell',
+    'powershell',
+    'sql',
+    'graphql',
+    'dockerfile',
+    'elixir',
+    'plaintext',
+  ],
+};

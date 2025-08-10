@@ -138,32 +138,55 @@
     - Add persistence with browser.storage ✅
     - Create action creators ✅
 
-## Phase 4: LLM Integration 🔄 IN PROGRESS
+## Phase 4: LLM Integration 🚀 MOSTLY COMPLETE (70%)
 
 ### Objectives
 
-- Local and API model support ⏳
-- Tab naming automation ⏳
-- Streaming responses ⏳
+- Local and API model support ✅ Basic Ollama working, OpenRouter pending
+- Tab naming automation ⏳ Pending
+- Streaming responses ⏳ Pending (blocked by model management)
+
+### Current Status - WORKING CHAT! 🎉
+
+**✅ COMPLETED:**
+- Basic LLM chat functionality with Ollama
+- CORS bypass via background script (XMLHttpRequest)
+- User/AI message flow in sidebar
+- Thinking indicator with bouncing dots
+- Input clearing on send for immediate feedback
+- Error handling with user-friendly messages
+- OLLAMA_ORIGINS="*" server configuration documented
+
+**⚠️ LIMITATIONS:**
+- Hardcoded model selection (gemma3:4b only)
+- No model discovery from Ollama /api/tags
+- No settings UI for model configuration
+- No streaming responses (complete response only)
+- No model color theming (generic UI)
 
 ### Tasks
 
-13. **Local LLM Connection** ⏳
-    - LLM Service Base Architecture (IAC-129) ⏳
-    - Implement Ollama provider (IAC-130) ⏳
-    - Add connection status monitoring ⏳
-    - Create fallback handling ⏳
+13. **Local LLM Connection** ✅ BASIC VERSION COMPLETE
+    - LLM Service Base Architecture (IAC-129) ✅ COMPLETE
+    - Implement Ollama provider (IAC-130) ✅ WORKING (background script bypass)
+    - Add connection status monitoring ✅ Basic error handling
+    - Create fallback handling ✅ Error messages in chat
 
-14. **API Integration** ⏳
-    - OpenRouter provider implementation (IAC-131) ⏳
-    - Secure API key management ⏳
+13.1. **Model Management System** 🚧 NEW - CRITICAL FOR COMPLETION
+    - Dynamic Model Discovery (IAC-134) ⏳ Discover models from Ollama /api/tags
+    - Model State Refactoring (IAC-135) ⏳ Store full ModelInfo objects with colors
+    - Settings UI Implementation (IAC-136) ⏳ Model configuration interface
+
+14. **API Integration** ⏳ BLOCKED BY MODEL MANAGEMENT
+    - OpenRouter provider implementation (IAC-131) ⏳ Blocked by model system
+    - Secure API key management ⏳ 
     - Rate limiting and error handling ⏳
 
-15. **Chat Interface Integration** ⏳
-    - Wire up LLM to sidebar (IAC-132) ⏳
-    - Implement streaming UI (IAC-133) ⏳
-    - Tab group auto-naming ⏳
-    - Context injection for chat ⏳
+15. **Chat Interface Integration** ✅ BASIC VERSION COMPLETE  
+    - Wire up LLM to sidebar (IAC-132) ✅ WORKING chat with real AI responses
+    - Implement streaming UI (IAC-133) ⏳ Blocked by provider refactoring
+    - Tab group auto-naming ⏳ Pending
+    - Context injection for chat ⏳ Pending
 
 ## Phase 5: Advanced Features
 
@@ -224,15 +247,28 @@
 - **P3: UI Development** (Issues 10-12) ✅ COMPLETE
   - **P3.6: Smart Paste** (Issue 111) ✅ COMPLETE
   - **P3.7: Rich Message Rendering** (Issues 112-116) ✅ COMPLETE
-- **P4: LLM Features** 🔄 IN PROGRESS
-  - IAC-129: LLM Service Base Architecture (Created in Linear)
-  - IAC-130: Implement Ollama Provider (Created in Linear)
-  - IAC-131: Add OpenRouter API Provider (Created in Linear)
-  - IAC-132: Integrate LLM Service with Sidebar Chat (Created in Linear)
-  - IAC-133: Implement Message Streaming UI (Created in Linear)
-  - Additional issues to be created for remaining Phase 4 features
-- **P5: Advanced Features** (Issues 16-18)
-- **P6: Polish** (Issues 19-21)
+- **P4: LLM Features** 🚀 MAJOR PROGRESS (70% complete)
+  - IAC-129: LLM Service Base Architecture ✅ COMPLETE
+  - IAC-130: Implement Ollama Provider ✅ WORKING (background script)
+  - IAC-131: Add OpenRouter API Provider ⏳ Blocked by model management
+  - IAC-132: Integrate LLM Service with Sidebar Chat ✅ WORKING CHAT!
+  - IAC-133: Implement Message Streaming UI ⏳ Blocked by model management
+  - **P4.1: Model Management System** 🚧 NEW CRITICAL PATH:
+    - IAC-134: Model Management System - Dynamic Discovery & Configuration
+    - IAC-135: Refactor Model State Management - Store Full ModelInfo Objects  
+    - IAC-136: Settings UI Implementation - Model Management Interface
+- **P5: Advanced Features** (Issues 16-18) ⏳ Ready to start
+- **P6: Polish** (Issues 19-21) ⏳ Ready to start
+
+### Phase 4 Dependencies Overview
+
+**CRITICAL PATH**: Model Management System (IAC-134, IAC-135, IAC-136)
+- **BLOCKS**: OpenRouter Provider (IAC-131), Streaming UI (IAC-133)
+- **ENABLES**: Full model selection, proper theming, settings UI
+- **CURRENT**: Hardcoded models prevent full feature completion
+
+**WORKING NOW**: Basic chat with Ollama, thinking indicators, error handling
+**NEXT PRIORITY**: IAC-135 (Model State Refactoring) → enables proper model access
 
 ### Recent Technical Debt Cleanup (IAC-102 through IAC-111)
 
@@ -255,11 +291,24 @@
 
 ## Success Metrics
 
-1. Working Firefox extension installable via about:debugging
-2. Successful tab group auto-naming
-3. Functional chat with both local and API models
-4. Public repository with clear AI coding documentation
-5. At least 5 documented AI automation experiments
+1. Working Firefox extension installable via about:debugging ✅ ACHIEVED
+2. Successful tab group auto-naming ⏳ Pending
+3. Functional chat with both local and API models ✅ LOCAL WORKING / API pending
+4. Public repository with clear AI coding documentation ✅ ACHIEVED
+5. At least 5 documented AI automation experiments ⏳ In progress
+
+### Current Achievement Status (Updated 2025-08-09)
+
+**🎉 MAJOR MILESTONE**: Real LLM chat functionality working!
+- Users can send messages and receive AI responses from Ollama
+- CORS issues resolved with background script bypass
+- Proper error handling and user feedback
+- Thinking indicators and immediate input clearing
+- All UI components integrated and functional
+
+**📈 Progress**: Phase 4 is 70% complete with core chat working
+**🚧 Blocker**: Model management system needed for full feature completion
+**⏭️ Next**: IAC-135 model state refactoring to enable model selection UI
 
 ## Out of Scope (v1)
 

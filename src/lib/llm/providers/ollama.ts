@@ -10,7 +10,7 @@ import {
   CompletionOptions,
   StreamChunk,
   LLMError,
-  LLMErrorCode
+  LLMErrorCode,
 } from '../types';
 import { ModelInfo } from '@/shared/types';
 import { streamFetch, parseJSONL } from '../utils/streaming';
@@ -105,16 +105,16 @@ export class OllamaProvider extends LLMProvider {
 
     const ollamaRequest: OlamaChatRequest = {
       model: request.model || this.getDefaultModel(),
-      messages: request.messages.map(msg => ({
+      messages: request.messages.map((msg) => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
       })),
       stream: false,
       options: {
         temperature: request.temperature,
         top_p: request.topP,
-        num_predict: request.maxTokens
-      }
+        num_predict: request.maxTokens,
+      },
     };
 
     try {
@@ -123,13 +123,15 @@ export class OllamaProvider extends LLMProvider {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(ollamaRequest)
+        body: JSON.stringify(ollamaRequest),
       });
 
       if (!response.ok) {
         throw this.createError(
           `Ollama API error: ${response.status} ${response.statusText}`,
-          response.status >= 500 ? LLMErrorCode.CONNECTION_FAILED : LLMErrorCode.UNKNOWN,
+          response.status >= 500
+            ? LLMErrorCode.CONNECTION_FAILED
+            : LLMErrorCode.UNKNOWN,
           response.status >= 500
         );
       }
@@ -142,18 +144,20 @@ export class OllamaProvider extends LLMProvider {
         usage: {
           promptTokens: data.prompt_eval_count || 0,
           completionTokens: data.eval_count || 0,
-          totalTokens: (data.prompt_eval_count || 0) + (data.eval_count || 0)
+          totalTokens: (data.prompt_eval_count || 0) + (data.eval_count || 0),
         },
         metadata: {
           finishReason: 'stop',
-          processingTime: data.total_duration ? data.total_duration / 1000000 : undefined // Convert nanoseconds to milliseconds
-        }
+          processingTime: data.total_duration
+            ? data.total_duration / 1000000
+            : undefined, // Convert nanoseconds to milliseconds
+        },
       };
     } catch (error) {
       if (error instanceof LLMError) {
         throw error;
       }
-      
+
       throw this.createError(
         `Ollama chat request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         LLMErrorCode.CONNECTION_FAILED,
@@ -167,7 +171,7 @@ export class OllamaProvider extends LLMProvider {
     const request: LLMRequest = {
       messages: [{ role: 'user', content: prompt, timestamp: Date.now() }],
       temperature: options?.temperature,
-      maxTokens: options?.maxTokens
+      maxTokens: options?.maxTokens,
     };
 
     const response = await this.chat(request);
@@ -180,16 +184,16 @@ export class OllamaProvider extends LLMProvider {
 
     const ollamaRequest: OlamaChatRequest = {
       model: request.model || this.getDefaultModel(),
-      messages: request.messages.map(msg => ({
+      messages: request.messages.map((msg) => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
       })),
       stream: true,
       options: {
         temperature: request.temperature,
         top_p: request.topP,
-        num_predict: request.maxTokens
-      }
+        num_predict: request.maxTokens,
+      },
     };
 
     try {
@@ -200,16 +204,16 @@ export class OllamaProvider extends LLMProvider {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(ollamaRequest)
+          body: JSON.stringify(ollamaRequest),
         },
         this.id
       );
 
       let buffer = '';
-      
+
       for await (const chunk of stream) {
         buffer += chunk;
-        
+
         // Process complete lines
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
@@ -218,26 +222,36 @@ export class OllamaProvider extends LLMProvider {
           if (line.trim()) {
             try {
               const data: OlamaChatResponse = JSON.parse(line);
-              
+
               yield {
                 content: data.message.content,
                 done: data.done,
-                metadata: data.done ? {
-                  finishReason: 'stop',
-                  usage: {
-                    promptTokens: data.prompt_eval_count || 0,
-                    completionTokens: data.eval_count || 0,
-                    totalTokens: (data.prompt_eval_count || 0) + (data.eval_count || 0)
-                  },
-                  processingTime: data.total_duration ? data.total_duration / 1000000 : undefined
-                } : undefined
+                metadata: data.done
+                  ? {
+                      finishReason: 'stop',
+                      usage: {
+                        promptTokens: data.prompt_eval_count || 0,
+                        completionTokens: data.eval_count || 0,
+                        totalTokens:
+                          (data.prompt_eval_count || 0) +
+                          (data.eval_count || 0),
+                      },
+                      processingTime: data.total_duration
+                        ? data.total_duration / 1000000
+                        : undefined,
+                    }
+                  : undefined,
               };
 
               if (data.done) {
                 return;
               }
             } catch (parseError) {
-              console.warn('Failed to parse Ollama streaming response:', line, parseError);
+              console.warn(
+                'Failed to parse Ollama streaming response:',
+                line,
+                parseError
+              );
             }
           }
         }
@@ -251,18 +265,22 @@ export class OllamaProvider extends LLMProvider {
             content: data.message.content,
             done: true,
             metadata: {
-              finishReason: 'stop'
-            }
+              finishReason: 'stop',
+            },
           };
         } catch (parseError) {
-          console.warn('Failed to parse final Ollama response:', buffer, parseError);
+          console.warn(
+            'Failed to parse final Ollama response:',
+            buffer,
+            parseError
+          );
         }
       }
     } catch (error) {
       if (error instanceof LLMError) {
         throw error;
       }
-      
+
       throw this.createError(
         `Ollama streaming failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         LLMErrorCode.CONNECTION_FAILED,
@@ -276,7 +294,7 @@ export class OllamaProvider extends LLMProvider {
     try {
       const response = await fetch(`${this.baseUrl}/api/tags`, {
         method: 'GET',
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal: AbortSignal.timeout(5000), // 5 second timeout
       });
       return response.ok;
     } catch (error) {
@@ -286,34 +304,34 @@ export class OllamaProvider extends LLMProvider {
 
   async getStatus(): Promise<ProviderStatus> {
     const lastChecked = Date.now();
-    
+
     try {
       const available = await this.isAvailable();
-      
+
       if (!available) {
         return {
           available: false,
           connected: false,
           error: 'Ollama server not responding',
-          lastChecked
+          lastChecked,
         };
       }
 
       // Get model count as additional status info
       const models = await this.getModels().catch(() => []);
-      
+
       return {
         available: true,
         connected: true,
         lastChecked,
-        models: models.slice(0, 5).map(m => m.name) // First 5 models
+        models: models.slice(0, 5).map((m) => m.name), // First 5 models
       };
     } catch (error) {
       return {
         available: false,
         connected: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        lastChecked
+        lastChecked,
       };
     }
   }
@@ -322,7 +340,7 @@ export class OllamaProvider extends LLMProvider {
     if (this.availableModels.length > 0) {
       return this.availableModels;
     }
-    
+
     await this.fetchAvailableModels();
     return this.availableModels;
   }
@@ -330,14 +348,16 @@ export class OllamaProvider extends LLMProvider {
   private async fetchAvailableModels(): Promise<void> {
     try {
       const response = await fetch(`${this.baseUrl}/api/tags`);
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch models: ${response.status} ${response.statusText}`
+        );
       }
 
       const data: OllamaModelResponse = await response.json();
-      
-      this.availableModels = data.models.map(model => ({
+
+      this.availableModels = data.models.map((model) => ({
         id: model.name,
         name: model.name,
         emoji: this.getModelEmoji(model.details.family || model.details.format),
@@ -347,8 +367,8 @@ export class OllamaProvider extends LLMProvider {
         settings: {
           temperature: 0.7,
           systemPrompt: '',
-          endpoint: this.baseUrl
-        }
+          endpoint: this.baseUrl,
+        },
       }));
     } catch (error) {
       throw this.createError(
@@ -365,7 +385,8 @@ export class OllamaProvider extends LLMProvider {
     // This is a rough heuristic since Ollama doesn't always report context length
     if (parameterSize.includes('7B')) return 4096;
     if (parameterSize.includes('13B')) return 4096;
-    if (parameterSize.includes('30B') || parameterSize.includes('34B')) return 8192;
+    if (parameterSize.includes('30B') || parameterSize.includes('34B'))
+      return 8192;
     if (parameterSize.includes('70B')) return 8192;
     return 2048; // Conservative default
   }
@@ -373,12 +394,12 @@ export class OllamaProvider extends LLMProvider {
   private getModelColor(family: string): string {
     // Color coding based on model family
     const familyColors: { [key: string]: string } = {
-      'llama': '#8ec07c', // Green for Llama models
-      'codellama': '#fb4934', // Red for CodeLlama
-      'mistral': '#fabd2f', // Yellow for Mistral
-      'gemma': '#83a598', // Blue for Gemma
-      'qwen': '#d3869b', // Purple for Qwen
-      'phi': '#fe8019'  // Orange for Phi
+      llama: '#8ec07c', // Green for Llama models
+      codellama: '#fb4934', // Red for CodeLlama
+      mistral: '#fabd2f', // Yellow for Mistral
+      gemma: '#83a598', // Blue for Gemma
+      qwen: '#d3869b', // Purple for Qwen
+      phi: '#fe8019', // Orange for Phi
     };
 
     for (const [key, color] of Object.entries(familyColors)) {
@@ -393,12 +414,12 @@ export class OllamaProvider extends LLMProvider {
   private getModelEmoji(family: string): string {
     // Emoji based on model family
     const familyEmojis: { [key: string]: string } = {
-      'llama': '🦙',
-      'codellama': '💻',
-      'mistral': '🌪️',
-      'gemma': '💎',
-      'qwen': '🐼',
-      'phi': '🔬'
+      llama: '🦙',
+      codellama: '💻',
+      mistral: '🌪️',
+      gemma: '💎',
+      qwen: '🐼',
+      phi: '🔬',
     };
 
     for (const [key, emoji] of Object.entries(familyEmojis)) {
@@ -412,7 +433,9 @@ export class OllamaProvider extends LLMProvider {
 }
 
 // Factory function to create Ollama provider with default config
-export function createOllamaProvider(baseUrl: string = 'http://localhost:11434'): OllamaProvider {
+export function createOllamaProvider(
+  baseUrl: string = 'http://localhost:11434'
+): OllamaProvider {
   const config: OllamaConfig = {
     id: 'ollama',
     name: 'Ollama Local',
@@ -422,7 +445,7 @@ export function createOllamaProvider(baseUrl: string = 'http://localhost:11434')
     defaultSettings: {
       endpoint: baseUrl,
       timeout: 30000,
-      retryAttempts: 3
+      retryAttempts: 3,
     },
     supportedFeatures: {
       streaming: true,
@@ -431,8 +454,8 @@ export function createOllamaProvider(baseUrl: string = 'http://localhost:11434')
       contextWindows: [2048, 4096, 8192],
       functionCalling: false, // Ollama doesn't support function calling yet
       imageInput: false,
-      codeGeneration: true
-    }
+      codeGeneration: true,
+    },
   };
 
   return new OllamaProvider(config);

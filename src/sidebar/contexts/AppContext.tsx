@@ -16,6 +16,7 @@ import {
 import { DEFAULT_MODELS } from '@/shared/constants';
 import { storage } from '@/lib/storage';
 import { BackgroundMessage, ContentMessage } from '@/shared/messages';
+import { ModelDiscoveryService } from '@/lib/model-discovery';
 // LLM requests now go through background script to bypass CORS
 
 // Action types
@@ -41,7 +42,10 @@ const initialState: AppState & {
 } = {
   currentSession: null,
   sessions: [],
-  activeModels: [],
+  models: [],
+  activeModelIds: [],
+  modelColors: {},
+  activeModels: [], // Legacy - to be removed
   currentSelection: null,
   highlightedLines: 0,
   sidebarOpen: true,
@@ -57,10 +61,34 @@ function appReducer(
 ): typeof initialState {
   switch (action.type) {
     case 'SET_MODELS':
-      return {
+      console.log('Reducer: SET_MODELS called with', action.models.length, 'models');
+      console.log('Reducer: Model details:', action.models.map(m => ({id: m.id, name: m.name, active: m.active})));
+      
+      const modelColors = action.models.reduce(
+        (acc: Record<string, string>, model: ModelInfo) => ({
+          ...acc,
+          [model.id]: model.color,
+        }),
+        {}
+      );
+
+      const activeModelIds = action.models
+        .filter((m) => m.active)
+        .map((m) => m.id);
+
+      console.log('Reducer: Active model IDs:', activeModelIds);
+      console.log('Reducer: Model colors:', modelColors);
+
+      const newState = {
         ...state,
-        activeModels: action.models.filter((m) => m.active).map((m) => m.id),
+        models: action.models,
+        activeModelIds,
+        modelColors,
+        activeModels: activeModelIds, // Keep legacy field in sync
       };
+      
+      console.log('Reducer: New state models count:', newState.models.length);
+      return newState;
 
     case 'TOGGLE_MODEL':
       // This will be handled by background script and reflected in SET_MODELS
@@ -162,10 +190,28 @@ function appReducer(
   }
 }
 
+// Model helper functions
+function createModelHelpers(state: typeof initialState) {
+  return {
+    getActiveModels: (): ModelInfo[] =>
+      state.models.filter((m) => state.activeModelIds.includes(m.id)),
+
+    getModelById: (id: string): ModelInfo | undefined =>
+      state.models.find((m) => m.id === id),
+
+    getModelColor: (id: string): string => state.modelColors[id] || '#8ec07c',
+
+    getAllModels: (): ModelInfo[] => state.models,
+
+    isModelActive: (id: string): boolean => state.activeModelIds.includes(id),
+  };
+}
+
 // Context
 interface AppContextType {
   state: typeof initialState;
   dispatch: React.Dispatch<AppAction>;
+  modelHelpers: ReturnType<typeof createModelHelpers>;
   actions: {
     toggleModel: (modelId: string) => Promise<void>;
     updateModel: (
@@ -199,20 +245,76 @@ export function AppProvider({ children }: AppProviderProps) {
 
   // LLM service now handled by background script - no initialization needed
 
-  async function initializeApp() {
+  async function discoverAndSyncModels(): Promise<ModelInfo[]> {
     try {
-      dispatch({ type: 'SET_LOADING', loading: true });
+      console.log('Frontend: Starting model discovery...');
+      // Try to discover models from Ollama
+      const response = await browser.runtime.sendMessage({
+        type: 'DISCOVER_OLLAMA_MODELS',
+      });
 
-      // Load models from storage
-      const models = await storage.getModels();
-      if (models.length > 0) {
-        dispatch({ type: 'SET_MODELS', models });
+      console.log('Frontend: Discovery response:', response);
+      if (response && response.success) {
+        console.log('Frontend: Discovered Ollama models:', response.models.length, response.models.map(m => ({id: m.id, name: m.name, active: m.active})));
+
+        // Load existing user configurations
+        const existingModels = await storage.getModels();
+        console.log('Frontend: Existing stored models:', existingModels.length, existingModels.map(m => ({id: m.id, name: m.name, active: m.active})));
+
+        // Sync discovered models with user configurations
+        const syncedModels = ModelDiscoveryService.syncWithUserConfig(
+          response.models,
+          existingModels
+        );
+        console.log('Frontend: Synced models:', syncedModels.length, syncedModels.map(m => ({id: m.id, name: m.name, active: m.active})));
+
+        // Save the updated model list
+        await storage.saveModels(syncedModels);
+        console.log('Frontend: Models saved to storage');
+
+        return syncedModels;
       } else {
-        // Initialize with defaults
+        console.error('Frontend: Failed to discover Ollama models. Response:', response);
+        console.error('Frontend: Response error:', response?.error);
+
+        // Fallback to existing models or defaults
+        const existingModels = await storage.getModels();
+        if (existingModels.length > 0) {
+          return existingModels;
+        }
+
+        // Last resort: use hardcoded defaults
         const defaultModels = Object.values(DEFAULT_MODELS);
         await storage.saveModels(defaultModels);
-        dispatch({ type: 'SET_MODELS', models: defaultModels });
+        return defaultModels;
       }
+    } catch (error) {
+      console.error('Frontend: Exception during model discovery:', error);
+      console.error('Frontend: Error stack:', error instanceof Error ? error.stack : 'No stack available');
+
+      // Fallback to stored models or defaults
+      const existingModels = await storage.getModels();
+      if (existingModels.length > 0) {
+        return existingModels;
+      }
+
+      const defaultModels = Object.values(DEFAULT_MODELS);
+      await storage.saveModels(defaultModels);
+      return defaultModels;
+    }
+  }
+
+  async function initializeApp() {
+    try {
+      console.log('Frontend: Starting app initialization...');
+      dispatch({ type: 'SET_LOADING', loading: true });
+
+      // Discover and sync models from Ollama
+      console.log('Frontend: Calling discoverAndSyncModels...');
+      const models = await discoverAndSyncModels();
+      console.log('Frontend: discoverAndSyncModels returned:', models.length, 'models');
+      console.log('Frontend: Dispatching SET_MODELS during initialization...');
+      dispatch({ type: 'SET_MODELS', models });
 
       // Load current session
       const currentSessionId = await storage.getCurrentSessionId();
@@ -286,25 +388,42 @@ export function AppProvider({ children }: AppProviderProps) {
   // Action implementations
   async function toggleModel(modelId: string) {
     try {
+      console.log('Frontend: Sending TOGGLE_MODEL message for modelId:', modelId);
       const response = await browser.runtime.sendMessage({
         type: 'TOGGLE_MODEL',
         modelId,
       });
 
+      console.log('Frontend: Received response from background:', response);
+
       // Handle case where response is undefined (background script not responding)
       if (!response) {
-        dispatch({ type: 'SET_ERROR', error: 'No response from background script' });
+        console.error('Frontend: No response from background script');
+        dispatch({
+          type: 'SET_ERROR',
+          error: 'No response from background script',
+        });
         return;
       }
 
       if (response.success) {
-        // Reload models to reflect change
-        const models = await storage.getModels();
+        console.log('Frontend: Toggle successful, reloading models from storage');
+        // Reload models from the discovery system storage
+        const result = await browser.storage.local.get('firefox-bootstrap-models');
+        const models = result['firefox-bootstrap-models'] || [];
+        console.log('Frontend: Loaded models from storage after toggle:', models.length, models.map(m => ({id: m.id, name: m.name, active: m.active})));
+        console.log('Frontend: Dispatching SET_MODELS with:', models);
         dispatch({ type: 'SET_MODELS', models });
+        console.log('Frontend: SET_MODELS dispatched successfully');
       } else {
-        dispatch({ type: 'SET_ERROR', error: response.error || 'Unknown error' });
+        console.error('Frontend: Toggle failed with error:', response.error);
+        dispatch({
+          type: 'SET_ERROR',
+          error: response.error || 'Unknown error',
+        });
       }
     } catch (error) {
+      console.error('Frontend: Exception in toggleModel:', error);
       dispatch({ type: 'SET_ERROR', error: 'Failed to toggle model' });
     }
   }
@@ -319,16 +438,23 @@ export function AppProvider({ children }: AppProviderProps) {
 
       // Handle case where response is undefined (background script not responding)
       if (!response) {
-        dispatch({ type: 'SET_ERROR', error: 'No response from background script' });
+        dispatch({
+          type: 'SET_ERROR',
+          error: 'No response from background script',
+        });
         return;
       }
 
       if (response.success) {
-        // Reload models to reflect change
-        const models = await storage.getModels();
+        // Reload models from the discovery system storage
+        const result = await browser.storage.local.get('firefox-bootstrap-models');
+        const models = result['firefox-bootstrap-models'] || [];
         dispatch({ type: 'SET_MODELS', models });
       } else {
-        dispatch({ type: 'SET_ERROR', error: response.error || 'Unknown error' });
+        dispatch({
+          type: 'SET_ERROR',
+          error: response.error || 'Unknown error',
+        });
       }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: 'Failed to update model' });
@@ -372,24 +498,33 @@ export function AppProvider({ children }: AppProviderProps) {
 
       // Send LLM request through background script (bypasses CORS)
       // Build conversation history
-      const messages = state.currentSession.messages.map(msg => ({
-        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+      const messages = state.currentSession.messages.map((msg) => ({
+        role: msg.type === 'user' ? ('user' as const) : ('assistant' as const),
         content: msg.content,
-        timestamp: msg.timestamp
+        timestamp: msg.timestamp,
       }));
 
       // Add current message
       messages.push({
         role: 'user' as const,
         content,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
+      // Select the first active model, fallback to gemma3:4b if none active
+      const activeModels = state.models.filter(m => m.active);
+      const selectedModel = activeModels.length > 0 ? activeModels[0] : { id: 'gemma3:4b' };
+      
+      console.log('Frontend: Active models for chat request:', activeModels.map(m => ({id: m.id, active: m.active})));
+      console.log('Frontend: Selected model for request:', selectedModel.id);
+      console.log('Frontend: Selected model settings:', selectedModel.settings);
+      
       const llmRequest = {
         messages,
-        model: 'gemma3:4b', // Use a reliable model
-        temperature: 0.7,
-        maxTokens: 2048,
+        model: selectedModel.id,
+        temperature: selectedModel.settings?.temperature || 0.7,
+        maxTokens: selectedModel.settings?.maxTokens || 2048,
+        systemPrompt: selectedModel.settings?.systemPrompt || 'You are a helpful AI assistant.',
       };
 
       const response = await browser.runtime.sendMessage({
@@ -420,14 +555,18 @@ export function AppProvider({ children }: AppProviderProps) {
             },
           };
 
-        dispatch({ type: 'ADD_MESSAGE', message: aiMessage });
-        
-        // Update and save session with both messages
-        const updatedSession = {
-          ...state.currentSession,
-          messages: [...state.currentSession.messages, userMessage, aiMessage],
-          updatedAt: Date.now(),
-        };
+          dispatch({ type: 'ADD_MESSAGE', message: aiMessage });
+
+          // Update and save session with both messages
+          const updatedSession = {
+            ...state.currentSession,
+            messages: [
+              ...state.currentSession.messages,
+              userMessage,
+              aiMessage,
+            ],
+            updatedAt: Date.now(),
+          };
           await storage.saveSession(updatedSession);
         } else {
           // Handle API error from background script
@@ -446,20 +585,24 @@ export function AppProvider({ children }: AppProviderProps) {
               settings: { temperature: 0, systemPrompt: '' },
             },
           };
-          
+
           dispatch({ type: 'ADD_MESSAGE', message: errorMessage });
-          
+
           // Save session with both user message and error
           const updatedSession = {
             ...state.currentSession,
-            messages: [...state.currentSession.messages, userMessage, errorMessage],
+            messages: [
+              ...state.currentSession.messages,
+              userMessage,
+              errorMessage,
+            ],
             updatedAt: Date.now(),
           };
           await storage.saveSession(updatedSession);
         }
       } catch (error) {
         console.error('LLM request failed:', error);
-        
+
         // Add error message for network/communication errors
         const errorMessage: Message = {
           id: `msg-${Date.now()}-ai-error`,
@@ -476,13 +619,17 @@ export function AppProvider({ children }: AppProviderProps) {
             settings: { temperature: 0, systemPrompt: '' },
           },
         };
-        
+
         dispatch({ type: 'ADD_MESSAGE', message: errorMessage });
-        
+
         // Save session with user message and error
         const updatedSession = {
           ...state.currentSession,
-          messages: [...state.currentSession.messages, userMessage, errorMessage],
+          messages: [
+            ...state.currentSession.messages,
+            userMessage,
+            errorMessage,
+          ],
           updatedAt: Date.now(),
         };
         await storage.saveSession(updatedSession);
@@ -533,7 +680,7 @@ export function AppProvider({ children }: AppProviderProps) {
   async function deleteMessage(messageId: string) {
     try {
       dispatch({ type: 'DELETE_MESSAGE', messageId });
-      
+
       // Save updated session to storage
       if (state.currentSession) {
         const updatedSession = {
@@ -553,7 +700,7 @@ export function AppProvider({ children }: AppProviderProps) {
   async function updateMessage(messageId: string, content: string) {
     try {
       dispatch({ type: 'UPDATE_MESSAGE', messageId, content });
-      
+
       // Save updated session to storage
       if (state.currentSession) {
         const updatedSession = {
@@ -593,6 +740,7 @@ export function AppProvider({ children }: AppProviderProps) {
   const contextValue: AppContextType = {
     state,
     dispatch,
+    modelHelpers: createModelHelpers(state),
     actions: {
       toggleModel,
       updateModel,

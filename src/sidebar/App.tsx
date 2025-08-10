@@ -10,6 +10,13 @@ import { EXTENSION_INFO } from '@/shared/constants';
 function AppContent() {
   const { state } = useApp();
 
+  console.log('App: Rendering with state:', {
+    models: state.models?.length || 0,
+    modelDetails: state.models?.map(m => ({id: m.id, name: m.name, active: m.active})),
+    loading: state.loading,
+    error: state.error
+  });
+
   if (state.loading) {
     return (
       <div className="flex flex-col h-screen bg-gruv-dark text-gruv-light font-mono">
@@ -43,7 +50,8 @@ function AppContent() {
     );
   }
 
-  const allModels = state.currentSession?.models || [];
+  const allModels = state.models || [];
+  console.log('App: allModels for rendering:', allModels.length, allModels.map(m => ({id: m.id, name: m.name, active: m.active})));
 
   return (
     <div className="flex flex-col h-screen bg-gruv-dark text-gruv-light font-mono">

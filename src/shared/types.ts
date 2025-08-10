@@ -70,7 +70,10 @@ export interface ChatSession {
 export interface AppState {
   currentSession: ChatSession | null;
   sessions: ChatSession[];
-  activeModels: string[]; // Model IDs
+  models: ModelInfo[]; // Full model objects with metadata
+  activeModelIds: string[]; // Active model IDs for clarity
+  modelColors: Record<string, string>; // Quick color lookup
+  activeModels: string[]; // Legacy field - to be removed after migration
   currentSelection: SelectionInfo | null;
   highlightedLines: number;
   sidebarOpen: boolean;

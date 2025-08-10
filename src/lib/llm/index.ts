@@ -23,7 +23,7 @@ export type {
   LLMManagerConfig,
   ProviderType,
   ModelInfo,
-  Message
+  Message,
 } from './types';
 
 // Error handling
@@ -39,7 +39,7 @@ export {
   streamFetch,
   mergeStreamChunks,
   createTimeoutController,
-  retryStream
+  retryStream,
 } from './utils/streaming';
 
 // Convenience functions for common operations
@@ -63,11 +63,11 @@ export async function initializeLLMService(config?: {
   retryAttempts?: number;
 }) {
   const manager = LLMManager.getInstance();
-  
+
   if (config) {
     manager.configure(config);
   }
-  
+
   return manager;
 }
 
@@ -85,16 +85,16 @@ export function createChatRequest(
   }
 ): LLMRequest {
   return {
-    messages: messages.map(msg => ({
+    messages: messages.map((msg) => ({
       role: msg.role,
       content: msg.content,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     })),
     model: options?.model,
     temperature: options?.temperature,
     maxTokens: options?.maxTokens,
     systemPrompt: options?.systemPrompt,
-    stream: options?.stream
+    stream: options?.stream,
   };
 }
 
@@ -111,26 +111,26 @@ export function createCompletionRequest(
   }
 ): LLMRequest {
   const messages: ChatMessage[] = [];
-  
+
   if (options?.systemPrompt) {
     messages.push({
       role: 'system',
       content: options.systemPrompt,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
-  
+
   messages.push({
     role: 'user',
     content: prompt,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 
   return {
     messages,
     model: options?.model,
     temperature: options?.temperature,
-    maxTokens: options?.maxTokens
+    maxTokens: options?.maxTokens,
   };
 }
 
@@ -140,18 +140,18 @@ export function createCompletionRequest(
 export async function hasAvailableProviders(): Promise<boolean> {
   const manager = LLMManager.getInstance();
   const providers = manager.getAllProviders();
-  
+
   if (providers.length === 0) {
     return false;
   }
-  
+
   // Check if at least one provider is available
-  const availabilityChecks = providers.map(provider => 
+  const availabilityChecks = providers.map((provider) =>
     provider.isAvailable().catch(() => false)
   );
-  
+
   const results = await Promise.all(availabilityChecks);
-  return results.some(available => available);
+  return results.some((available) => available);
 }
 
 /**
@@ -165,11 +165,11 @@ export async function getProviderSummary(): Promise<{
 }> {
   const manager = LLMManager.getInstance();
   const statuses = await manager.getAllProviderStatuses();
-  
+
   let available = 0;
   let connected = 0;
   const errors: string[] = [];
-  
+
   for (const [providerId, status] of statuses) {
     if (status.available) available++;
     if (status.connected) connected++;
@@ -177,12 +177,12 @@ export async function getProviderSummary(): Promise<{
       errors.push(`${providerId}: ${status.error}`);
     }
   }
-  
+
   return {
     total: statuses.size,
     available,
     connected,
-    errors
+    errors,
   };
 }
 
@@ -197,5 +197,5 @@ export default {
   createChatRequest,
   createCompletionRequest,
   hasAvailableProviders,
-  getProviderSummary
+  getProviderSummary,
 };

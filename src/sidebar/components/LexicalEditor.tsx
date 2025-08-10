@@ -25,10 +25,7 @@ import {
   $isCodeNode,
   $createCodeNode,
 } from '@lexical/code';
-import { 
-  registerCodeHighlighting, 
-  ShikiTokenizer
-} from '@lexical/code-shiki';
+import { registerCodeHighlighting, ShikiTokenizer } from '@lexical/code-shiki';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
 import { LinkPlugin as LexicalLinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import {
@@ -103,10 +100,10 @@ const SHIKI_CODE_BLOCK_TRANSFORMER: ElementTransformer = {
   replace: (parentNode, children, match) => {
     const language = match[1] || '';
     const codeNode = $createCodeNode(language);
-    
+
     // Don't include the backticks in the code content
     // children will be empty or contain only whitespace at this point
-    
+
     parentNode.replace(codeNode);
     codeNode.selectStart();
   },
@@ -139,16 +136,19 @@ function CodeHighlightPlugin() {
 
   useEffect(() => {
     console.log('IAC-120: Registering Shiki code highlighting');
-    console.log('Shiki tokenizer default language:', ShikiTokenizer.defaultLanguage);
+    console.log(
+      'Shiki tokenizer default language:',
+      ShikiTokenizer.defaultLanguage
+    );
     console.log('Shiki tokenizer default theme:', ShikiTokenizer.defaultTheme);
-    
+
     // Create a customized tokenizer with gruvbox-friendly settings
     const customTokenizer = {
       ...ShikiTokenizer,
       defaultTheme: 'gruvbox-dark-medium', // Use a dark theme compatible with our gruvbox styling
       defaultLanguage: 'javascript',
     };
-    
+
     // All packages are now on nightly version 0.33.2-nightly.20250807.0
     // This should resolve version compatibility issues
     return registerCodeHighlighting(editor, customTokenizer);
@@ -293,9 +293,11 @@ function MarkdownDebugPlugin() {
   useEffect(() => {
     console.log('IAC-119: Migrated to Shiki from Prism.js');
     console.log('IAC-112 Complete: Using TRANSFORMERS + HR_TRANSFORMER');
-    const filteredTransformers = TRANSFORMERS.filter(t => t !== CODE);
+    const filteredTransformers = TRANSFORMERS.filter((t) => t !== CODE);
     console.log('Active transformer count:', filteredTransformers.length + 2);
-    console.log('NOTE: Using custom SHIKI_CODE_BLOCK_TRANSFORMER, excluding built-in CODE');
+    console.log(
+      'NOTE: Using custom SHIKI_CODE_BLOCK_TRANSFORMER, excluding built-in CODE'
+    );
 
     // List what transformers are active
     console.log('Active transformers:');
@@ -480,9 +482,9 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
             let markdown = '';
             editor.getEditorState().read(() => {
               markdown = $convertToMarkdownString([
-                HR_TRANSFORMER, 
-                SHIKI_CODE_BLOCK_TRANSFORMER, 
-                ...TRANSFORMERS.filter(t => t !== CODE)
+                HR_TRANSFORMER,
+                SHIKI_CODE_BLOCK_TRANSFORMER,
+                ...TRANSFORMERS.filter((t) => t !== CODE),
               ]);
             });
             return markdown;
@@ -547,9 +549,9 @@ export const LexicalEditor = forwardRef<LexicalEditorRef, LexicalEditorProps>(
           <SimpleDragDropPastePlugin onImageDrop={onImageDrop} />
           <MarkdownShortcutPlugin
             transformers={[
-              HR_TRANSFORMER, 
-              SHIKI_CODE_BLOCK_TRANSFORMER, 
-              ...TRANSFORMERS.filter(t => t !== CODE)
+              HR_TRANSFORMER,
+              SHIKI_CODE_BLOCK_TRANSFORMER,
+              ...TRANSFORMERS.filter((t) => t !== CODE),
             ]}
           />
           <MarkdownDebugPlugin />

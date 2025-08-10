@@ -11,7 +11,7 @@ import {
   LLMError,
   LLMErrorCode,
   StreamChunk,
-  StreamOptions
+  StreamOptions,
 } from '../types';
 import { ModelInfo } from '@/shared/types';
 
@@ -30,7 +30,7 @@ export abstract class LLMProvider {
   }
 
   // Abstract methods that must be implemented by concrete providers
-  
+
   /**
    * Send a chat request and get a complete response
    */
@@ -39,7 +39,10 @@ export abstract class LLMProvider {
   /**
    * Send a simple completion request
    */
-  abstract complete(prompt: string, options?: CompletionOptions): Promise<string>;
+  abstract complete(
+    prompt: string,
+    options?: CompletionOptions
+  ): Promise<string>;
 
   /**
    * Stream a chat response (returns async iterator)
@@ -72,7 +75,7 @@ export abstract class LLMProvider {
   abstract cleanup(): Promise<void>;
 
   // Concrete methods with default implementations
-  
+
   /**
    * Get the provider's unique identifier
    */
@@ -107,9 +110,9 @@ export abstract class LLMProvider {
   configure(newSettings: Partial<ProviderSettings>): void {
     this.settings = {
       ...this.settings,
-      ...newSettings
+      ...newSettings,
     };
-    
+
     // Mark as not initialized if critical settings changed
     if (newSettings.endpoint || newSettings.apiKey) {
       this.isInitialized = false;
@@ -126,14 +129,22 @@ export abstract class LLMProvider {
   /**
    * Stream a chat response with callbacks (convenience method)
    */
-  async streamWithCallbacks(request: LLMRequest, options: StreamOptions): Promise<LLMResponse> {
+  async streamWithCallbacks(
+    request: LLMRequest,
+    options: StreamOptions
+  ): Promise<LLMResponse> {
     const chunks: string[] = [];
     let finalResponse: LLMResponse | undefined;
 
     try {
       for await (const chunk of this.stream(request)) {
         if (options.signal?.aborted) {
-          throw new LLMError('Request aborted', LLMErrorCode.UNKNOWN, this.id, false);
+          throw new LLMError(
+            'Request aborted',
+            LLMErrorCode.UNKNOWN,
+            this.id,
+            false
+          );
         }
 
         chunks.push(chunk.content);
@@ -143,7 +154,7 @@ export abstract class LLMProvider {
           finalResponse = {
             content: chunks.join(''),
             model: request.model || this.config.defaultModel || 'unknown',
-            ...chunk.metadata
+            ...chunk.metadata,
           };
         }
       }
@@ -151,24 +162,26 @@ export abstract class LLMProvider {
       if (!finalResponse) {
         finalResponse = {
           content: chunks.join(''),
-          model: request.model || this.config.defaultModel || 'unknown'
+          model: request.model || this.config.defaultModel || 'unknown',
         };
       }
 
       options.onComplete?.(finalResponse);
       return finalResponse;
-
     } catch (error) {
-      const llmError = error instanceof LLMError 
-        ? error 
-        : new LLMError(
-            error instanceof Error ? error.message : 'Unknown streaming error',
-            LLMErrorCode.UNKNOWN,
-            this.id,
-            false,
-            error instanceof Error ? error : undefined
-          );
-      
+      const llmError =
+        error instanceof LLMError
+          ? error
+          : new LLMError(
+              error instanceof Error
+                ? error.message
+                : 'Unknown streaming error',
+              LLMErrorCode.UNKNOWN,
+              this.id,
+              false,
+              error instanceof Error ? error : undefined
+            );
+
       options.onError?.(llmError);
       throw llmError;
     }
@@ -179,15 +192,30 @@ export abstract class LLMProvider {
    */
   protected validateRequest(request: LLMRequest): void {
     if (!request.messages || request.messages.length === 0) {
-      throw new LLMError('Request must contain at least one message', LLMErrorCode.INVALID_REQUEST, this.id);
+      throw new LLMError(
+        'Request must contain at least one message',
+        LLMErrorCode.INVALID_REQUEST,
+        this.id
+      );
     }
 
-    if (request.temperature !== undefined && (request.temperature < 0 || request.temperature > 2)) {
-      throw new LLMError('Temperature must be between 0 and 2', LLMErrorCode.INVALID_REQUEST, this.id);
+    if (
+      request.temperature !== undefined &&
+      (request.temperature < 0 || request.temperature > 2)
+    ) {
+      throw new LLMError(
+        'Temperature must be between 0 and 2',
+        LLMErrorCode.INVALID_REQUEST,
+        this.id
+      );
     }
 
     if (request.maxTokens !== undefined && request.maxTokens < 1) {
-      throw new LLMError('maxTokens must be at least 1', LLMErrorCode.INVALID_REQUEST, this.id);
+      throw new LLMError(
+        'maxTokens must be at least 1',
+        LLMErrorCode.INVALID_REQUEST,
+        this.id
+      );
     }
   }
 

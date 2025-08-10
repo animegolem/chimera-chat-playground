@@ -15,7 +15,10 @@ interface RichMessageContentProps {
  * Renders AI response content with rich markdown formatting and Shiki code highlighting
  * Uses async ContentSanitizer for proper Shiki syntax highlighting
  */
-export function RichMessageContent({ content, className = '' }: RichMessageContentProps) {
+export function RichMessageContent({
+  content,
+  className = '',
+}: RichMessageContentProps) {
   const { actions } = useApp();
   const [sanitizedHtml, setSanitizedHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -29,7 +32,7 @@ export function RichMessageContent({ content, className = '' }: RichMessageConte
         setIsLoading(true);
         // Use async version for proper Shiki highlighting
         const html = await sanitizer.sanitizeAIResponseAsync(content);
-        
+
         if (!isCancelled) {
           setSanitizedHtml(html);
         }
@@ -59,7 +62,7 @@ export function RichMessageContent({ content, className = '' }: RichMessageConte
     if (!contentRef.current || isLoading) return;
 
     const codeBlocks = contentRef.current.querySelectorAll('pre');
-    
+
     codeBlocks.forEach((pre, index) => {
       // Skip if already has copy button
       if (pre.querySelector('.code-copy-btn')) return;
@@ -69,19 +72,32 @@ export function RichMessageContent({ content, className = '' }: RichMessageConte
 
       // Extract language from various possible sources
       let languageAttr = 'text';
-      
+
       // Debug: log element attributes and full HTML
       console.log('Pre element:', pre);
       console.log('Pre outerHTML:', pre.outerHTML);
       console.log('Pre className:', pre.className);
       console.log('Pre data-language:', pre.getAttribute('data-language'));
-      console.log('Pre all attributes:', pre.getAttributeNames().map(name => `${name}="${pre.getAttribute(name)}"`));
+      console.log(
+        'Pre all attributes:',
+        pre
+          .getAttributeNames()
+          .map((name) => `${name}="${pre.getAttribute(name)}"`)
+      );
       console.log('Code element:', codeElement);
       console.log('Code outerHTML:', codeElement.outerHTML);
       console.log('Code className:', codeElement.className);
-      console.log('Code data-language:', codeElement.getAttribute('data-language'));
-      console.log('Code all attributes:', codeElement.getAttributeNames().map(name => `${name}="${codeElement.getAttribute(name)}"`));
-      
+      console.log(
+        'Code data-language:',
+        codeElement.getAttribute('data-language')
+      );
+      console.log(
+        'Code all attributes:',
+        codeElement
+          .getAttributeNames()
+          .map((name) => `${name}="${codeElement.getAttribute(name)}"`)
+      );
+
       // Enhanced detection methods - try everything possible
       if (pre.getAttribute('data-language')) {
         languageAttr = pre.getAttribute('data-language');
@@ -105,32 +121,34 @@ export function RichMessageContent({ content, className = '' }: RichMessageConte
         const match = pre.className.match(/lang-(\w+)/);
         if (match) languageAttr = match[1];
       }
-      
+
       console.log('Final detected language:', languageAttr);
-      
+
       // Create language label (non-interactable, positioned to the left of copy button)
       const languageLabel = document.createElement('span');
-      languageLabel.className = 'absolute text-gruv-medium px-3 py-2 rounded bg-gruv-dark-soft opacity-0 group-hover:opacity-100 pointer-events-none';
+      languageLabel.className =
+        'absolute text-gruv-medium px-3 py-2 rounded bg-gruv-dark-soft opacity-0 group-hover:opacity-100 pointer-events-none';
       languageLabel.textContent = languageAttr;
       languageLabel.style.right = '80px'; // Position to the left of the copy button
       languageLabel.style.top = '14px'; // Fine-tune vertical alignment (top-3 = 12px, so 14px moves it down 2px)
       languageLabel.style.fontSize = '18px';
       languageLabel.style.lineHeight = '1';
-      
+
       // Create copy button (standalone, much larger text)
       const copyButton = document.createElement('button');
-      copyButton.className = 'code-copy-btn absolute top-3 right-3 text-gruv-medium hover:text-gruv-light px-3 py-2 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors opacity-0 group-hover:opacity-100';
+      copyButton.className =
+        'code-copy-btn absolute top-3 right-3 text-gruv-medium hover:text-gruv-light px-3 py-2 rounded bg-gruv-dark-soft hover:bg-gruv-medium transition-colors opacity-0 group-hover:opacity-100';
       copyButton.innerHTML = '⧉';
       copyButton.title = `Copy ${languageAttr} code`;
       copyButton.style.fontSize = '24px';
       copyButton.style.lineHeight = '1';
-      
+
       copyButton.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
         const code = codeElement.textContent || '';
         await actions.copyMessage(code);
-        
+
         // Temporary feedback
         const originalText = copyButton.innerHTML;
         copyButton.innerHTML = '✓';
@@ -152,7 +170,9 @@ export function RichMessageContent({ content, className = '' }: RichMessageConte
       const codeBlocks = contentRef.current?.querySelectorAll('pre');
       codeBlocks?.forEach((pre) => {
         const copyBtn = pre.querySelector('.code-copy-btn');
-        const langLabel = pre.querySelector('span[class*="pointer-events-none"]');
+        const langLabel = pre.querySelector(
+          'span[class*="pointer-events-none"]'
+        );
         if (copyBtn) copyBtn.remove();
         if (langLabel) langLabel.remove();
       });
@@ -161,7 +181,9 @@ export function RichMessageContent({ content, className = '' }: RichMessageConte
 
   if (isLoading) {
     return (
-      <div className={`rich-message-content prose prose-invert max-w-none ${className}`}>
+      <div
+        className={`rich-message-content prose prose-invert max-w-none ${className}`}
+      >
         <div className="text-gruv-medium animate-pulse">Processing...</div>
       </div>
     );

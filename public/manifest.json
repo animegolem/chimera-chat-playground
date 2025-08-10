@@ -13,11 +13,13 @@
   ],
   
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background-simple.js"]
   },
   
   "content_scripts": [
@@ -52,6 +54,6 @@
   ],
   
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' http://localhost:11434 http://127.0.0.1:11434;"
   }
 }

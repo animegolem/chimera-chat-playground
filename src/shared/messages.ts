@@ -63,7 +63,8 @@ export interface SidebarMessage {
     | 'SEND_TO_LLM'
     | 'LLM_CHAT_REQUEST'
     | 'UPDATE_MODEL_SETTINGS'
-    | 'TOGGLE_MODEL';
+    | 'TOGGLE_MODEL'
+    | 'DISCOVER_OLLAMA_MODELS';
 
   // Tab management
   groupId?: number;
@@ -73,12 +74,12 @@ export interface SidebarMessage {
   tabId?: number;
   searchText?: string;
 
-  // LLM interaction  
+  // LLM interaction
   prompt?: string;
   models?: string[]; // Model IDs to use
   includeSelection?: boolean;
   includePageContent?: boolean;
-  
+
   // LLM Chat Request
   llmRequest?: {
     messages: Array<{

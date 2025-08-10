@@ -1,35 +1,33 @@
 // Shared constants for Firefox Bootstrap extension
 
-// Default model configurations
+// Default model configurations (synced with background script)
 export const DEFAULT_MODELS = {
-  LOCAL: {
-    id: 'local-default',
-    name: 'Gemma-8B',
-    emoji: '🤖',
-    color: '#8ec07c', // gruv-aqua-bright
+  'gemma3:4b': {
+    id: 'gemma3:4b',
+    name: 'Gemma 3 4B',
+    emoji: '💎',
+    color: '#83a598', // gruv-blue-bright
     type: 'local' as const,
     active: true,
     settings: {
       temperature: 0.7,
-      systemPrompt:
-        'You are a helpful AI assistant focused on quick, accurate responses for web browsing and tab management.',
-      endpoint: 'http://localhost:11434', // Default Ollama endpoint
+      systemPrompt: 'You are a helpful AI assistant.',
+      endpoint: 'http://localhost:11434',
       maxTokens: 2048,
     },
   },
-  API: {
-    id: 'api-default',
-    name: 'Claude-Sonnet',
-    emoji: '🌍',
-    color: '#d3869b', // gruv-purple-bright
-    type: 'api' as const,
-    active: false, // Requires API key
+  'llama3.2:7b': {
+    id: 'llama3.2:7b',
+    name: 'Llama 3.2 7B',
+    emoji: '🦙',
+    color: '#b8bb26', // gruv-yellow-bright
+    type: 'local' as const,
+    active: false,
     settings: {
-      temperature: 0.9,
-      systemPrompt:
-        'You are an expert AI assistant with deep knowledge of web development and research.',
-      endpoint: 'https://openrouter.ai/api/v1',
-      maxTokens: 4096,
+      temperature: 0.7,
+      systemPrompt: 'You are a helpful AI assistant.',
+      endpoint: 'http://localhost:11434',
+      maxTokens: 2048,
     },
   },
 } as const;

@@ -56,25 +56,26 @@ export function InputArea({ className = '' }: InputAreaProps) {
       return;
     }
 
-    const activeModelIds = state.activeModels;
+    const activeModelIds = state.activeModelIds;
     if (activeModelIds.length === 0) {
       alert('Please select at least one model');
       return;
     }
 
-    await actions.sendMessage(currentMarkdown.trim(), activeModelIds);
-
-    // Clear and refocus the editor
+    // Clear the input immediately when sending
     if (editorRef.current) {
       editorRef.current.clear();
       editorRef.current.focus();
     }
 
-    // Reset all states after clearing
+    // Reset all states immediately
     setHasContent(false);
     setFileCount(0);
     setEstimatedTokens(0);
-  }, [state.loading, state.sending, state.activeModels, actions]);
+
+    // Send the message (this runs async in background)
+    await actions.sendMessage(currentMarkdown.trim(), activeModelIds);
+  }, [state.loading, state.sending, state.activeModelIds, actions]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -223,7 +224,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
             <span className="text-gruv-aqua-bright">
               ✂️ {state.highlightedLines} lines selected
             </span>
-          ) : state.activeModels.length === 0 ? (
+          ) : state.activeModelIds.length === 0 ? (
             <span className="text-gruv-red-bright">⚠ No models selected</span>
           ) : null}
         </div>
@@ -236,7 +237,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
             disabled={
               state.loading ||
               state.sending ||
-              state.activeModels.length === 0 ||
+              state.activeModelIds.length === 0 ||
               !hasContent
             }
             className="bg-gruv-medium hover:bg-gruv-green text-gruv-light hover:text-gruv-aqua-bright transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

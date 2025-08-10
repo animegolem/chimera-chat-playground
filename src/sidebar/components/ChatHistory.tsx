@@ -11,17 +11,18 @@ interface ChatHistoryProps {
 }
 
 export function ChatHistory({ messages, className = '' }: ChatHistoryProps) {
+  const { state, modelHelpers } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or when thinking state changes
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
+      messagesEndRef.current.scrollIntoView({
         behavior: 'smooth',
-        block: 'end'
+        block: 'end',
       });
     }
-  }, [messages]);
+  }, [messages, state.sending]);
 
   return (
     <ScrollArea className={`flex-1 p-4 custom-scrollbar ${className}`}>
@@ -38,6 +39,49 @@ export function ChatHistory({ messages, className = '' }: ChatHistoryProps) {
             <MessageBubble key={message.id} message={message} />
           ))
         )}
+
+        {/* Thinking indicator when sending */}
+        {state.sending &&
+          (() => {
+            const firstActiveModelId = state.activeModelIds[0];
+            const thinkingColor = firstActiveModelId
+              ? modelHelpers.getModelColor(firstActiveModelId)
+              : '#8ec07c';
+
+            return (
+              <Card
+                className="p-4 bg-secondary border"
+                style={{ borderColor: thinkingColor }}
+              >
+                <div className="flex items-center justify-center">
+                  <div className="flex space-x-1">
+                    <div
+                      className="w-2 h-2 rounded-full animate-bounce"
+                      style={{
+                        backgroundColor: thinkingColor,
+                        animationDelay: '0ms',
+                      }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 rounded-full animate-bounce"
+                      style={{
+                        backgroundColor: thinkingColor,
+                        animationDelay: '150ms',
+                      }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 rounded-full animate-bounce"
+                      style={{
+                        backgroundColor: thinkingColor,
+                        animationDelay: '300ms',
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })()}
+
         {/* Invisible div to scroll to */}
         <div ref={messagesEndRef} />
       </div>
@@ -114,7 +158,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         <div className="flex items-start gap-2">
           <span className="text-gruv-yellow-bright">👤 YOU</span>
         </div>
-        
+
         {isEditing ? (
           <div className="mt-2">
             <textarea
@@ -143,12 +187,12 @@ function MessageBubble({ message }: MessageBubbleProps) {
             </div>
           </div>
         ) : (
-          <RichMessageContent 
-            content={message.content} 
+          <RichMessageContent
+            content={message.content}
             className="mt-2 text-sm"
           />
         )}
-        
+
         <div className="mt-2 flex justify-between text-xs text-gruv-medium">
           <span>{new Date(message.timestamp).toLocaleDateString()}</span>
           <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
@@ -188,11 +232,12 @@ function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
-
         {/* Delete confirmation modal */}
         {showDeleteConfirm && (
           <div className="absolute top-2 right-2 bg-gruv-dark border border-gruv-medium rounded-md p-2 shadow-lg z-10">
-            <div className="text-xs text-gruv-light mb-2">Delete this message?</div>
+            <div className="text-xs text-gruv-light mb-2">
+              Delete this message?
+            </div>
             <div className="flex gap-1">
               <button
                 onClick={handleDelete}
@@ -228,10 +273,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         </span>
       </div>
       {/* IAC-114: Use RichMessageContent for AI responses, plain text for user */}
-      <RichMessageContent 
-        content={message.content} 
-        className="mt-2 text-sm"
-      />
+      <RichMessageContent content={message.content} className="mt-2 text-sm" />
       <div className="mt-2 flex justify-between text-xs text-gruv-medium">
         <span>{new Date(message.timestamp).toLocaleDateString()}</span>
         <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
@@ -264,11 +306,12 @@ function MessageBubble({ message }: MessageBubbleProps) {
         </div>
       )}
 
-
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
         <div className="absolute top-2 right-2 bg-gruv-dark border border-gruv-medium rounded-md p-2 shadow-lg z-10">
-          <div className="text-xs text-gruv-light mb-2">Delete this response?</div>
+          <div className="text-xs text-gruv-light mb-2">
+            Delete this response?
+          </div>
           <div className="flex gap-1">
             <button
               onClick={handleDelete}

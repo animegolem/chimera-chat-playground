@@ -11,12 +11,11 @@ export default defineConfig({
       input: {
         // React sidebar application
         sidebar: resolve(__dirname, 'src/sidebar/index.tsx'),
-        // Background script
-        background: resolve(__dirname, 'src/background/index.ts'),
         // Content script
         content: resolve(__dirname, 'src/content/index.ts'),
         // Debug page
         debug: resolve(__dirname, 'src/debug.tsx'),
+        // Note: background-simple.js is copied manually, not built by Vite
       },
       output: {
         entryFileNames: '[name].js',

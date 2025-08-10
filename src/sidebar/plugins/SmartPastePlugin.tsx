@@ -12,8 +12,15 @@ import {
   PasteCommandType,
 } from 'lexical';
 import { $isCodeNode } from '@lexical/code';
-import { $convertFromMarkdownString, TRANSFORMERS, ElementTransformer } from '@lexical/markdown';
-import { $createHorizontalRuleNode, $isHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import {
+  $convertFromMarkdownString,
+  TRANSFORMERS,
+  ElementTransformer,
+} from '@lexical/markdown';
+import {
+  $createHorizontalRuleNode,
+  $isHorizontalRuleNode,
+} from '@lexical/react/LexicalHorizontalRuleNode';
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 
 // Horizontal Rule transformer for --- markdown shortcut (same as in LexicalEditor)
@@ -85,14 +92,14 @@ export function SmartPastePlugin({
         if (isInCodeBlock) {
           // Inside code block: Preserve raw text, no markdown parsing
           console.log('SmartPastePlugin: Raw text paste (code context)');
-          
+
           // Prevent the default paste first
           if (payload instanceof ClipboardEvent) {
             payload.preventDefault();
           } else if (payload instanceof DragEvent) {
             payload.preventDefault();
           }
-          
+
           // Use editor.update to ensure we're in control of the insertion
           editor.update(() => {
             // Clear any existing selection first
@@ -100,7 +107,7 @@ export function SmartPastePlugin({
             // Then insert the text
             selection.insertText(text);
           });
-          
+
           return true; // Prevent default paste behavior
         } else {
           // General editor: Apply markdown formatting
@@ -145,19 +152,21 @@ function handleMarkdownPaste(
   try {
     // Check if content looks like markdown
     const hasMarkdownPatterns =
-      /(\*\*.*\*\*|\*.*\*|`.*`|^#{1,6}\s|^>\s|^\d+\.\s|^[-*]\s|```)/m.test(text);
+      /(\*\*.*\*\*|\*.*\*|`.*`|^#{1,6}\s|^>\s|^\d+\.\s|^[-*]\s|```)/m.test(
+        text
+      );
 
     if (!hasMarkdownPatterns) {
       // Plain text - just insert it normally but still prevent double paste
       console.log('SmartPastePlugin: Plain text, inserting directly');
-      
+
       // Prevent default first
       if (event instanceof ClipboardEvent) {
         event.preventDefault();
       } else if (event instanceof DragEvent) {
         event.preventDefault();
       }
-      
+
       selection.insertText(text);
       return true; // Prevent default paste behavior
     }
@@ -177,7 +186,7 @@ function handleMarkdownPaste(
     editor.update(() => {
       // Clear the current selection
       selection.removeText();
-      
+
       // Convert markdown to Lexical nodes using full transformer set
       $convertFromMarkdownString(text, [HR_TRANSFORMER, ...TRANSFORMERS]);
     });
@@ -185,14 +194,14 @@ function handleMarkdownPaste(
     return true; // Prevent default paste behavior
   } catch (error) {
     console.error('SmartPastePlugin: Error processing markdown paste', error);
-    
+
     // Prevent default first
     if (event instanceof ClipboardEvent) {
       event.preventDefault();
     } else if (event instanceof DragEvent) {
       event.preventDefault();
     }
-    
+
     // On error, insert as plain text to avoid losing content
     selection.insertText(text);
     return true; // Still prevent default to avoid double paste

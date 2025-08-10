@@ -102,7 +102,7 @@ export enum LLMErrorCode {
   TIMEOUT = 'TIMEOUT',
   QUOTA_EXCEEDED = 'QUOTA_EXCEEDED',
   CONTENT_FILTERED = 'CONTENT_FILTERED',
-  UNKNOWN = 'UNKNOWN'
+  UNKNOWN = 'UNKNOWN',
 }
 
 // Provider Configuration

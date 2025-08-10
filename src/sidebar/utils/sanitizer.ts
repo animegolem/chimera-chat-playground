@@ -34,7 +34,7 @@ export class ContentSanitizer {
   private readonly allowedAttributes = {
     a: ['href', 'title'],
     code: ['class', 'style'],
-    pre: ['class', 'style'],  
+    pre: ['class', 'style'],
     span: ['class', 'style'],
     mark: ['class'], // Allow mark for ==highlight== syntax
   };
@@ -174,7 +174,9 @@ export class ContentSanitizer {
     const contentWithHighlights = this.preprocessHighlights(content);
 
     // Step 2: Pre-process code blocks with Shiki before markdown parsing
-    const contentWithShiki = await this.preprocessCodeBlocks(contentWithHighlights);
+    const contentWithShiki = await this.preprocessCodeBlocks(
+      contentWithHighlights
+    );
 
     // Step 3: Use regular renderer (code blocks already processed)
     const renderer = this.createSecureRenderer();
@@ -205,7 +207,10 @@ export class ContentSanitizer {
     for (const match of matches) {
       const [fullMatch, language, code] = match;
       try {
-        const highlightedHtml = await this.renderCodeWithShikiAsync(code, language || 'plaintext');
+        const highlightedHtml = await this.renderCodeWithShikiAsync(
+          code,
+          language || 'plaintext'
+        );
         // Replace the markdown code block with the highlighted HTML
         processedContent = processedContent.replace(fullMatch, highlightedHtml);
       } catch (error) {
@@ -259,7 +264,7 @@ export class ContentSanitizer {
     renderer.code = ({ text, lang }) => {
       const safeCode = text;
       const safeLanguage = lang ? this.validateLanguage(lang) : 'plaintext';
-      
+
       // Use fallback rendering for sync context (async path handles Shiki properly)
       return this.fallbackCodeRender(safeCode, safeLanguage);
     };
@@ -272,7 +277,6 @@ export class ContentSanitizer {
 
     return renderer;
   }
-
 
   /**
    * Validate URL for safety
@@ -361,20 +365,23 @@ export class ContentSanitizer {
   /**
    * Render code with Shiki syntax highlighting using gruvbox theme
    */
-  private async renderCodeWithShikiAsync(code: string, language: string): Promise<string> {
+  private async renderCodeWithShikiAsync(
+    code: string,
+    language: string
+  ): Promise<string> {
     try {
       // Use Shiki's codeToHtml for proper syntax highlighting
       const highlightedHtml = await codeToHtml(code.trim(), {
         lang: language,
         theme: 'gruvbox-dark-medium', // Match LexicalEditor theme
       });
-      
+
       // Add data-language attribute to preserve language info for copy buttons
       const withLanguageAttr = highlightedHtml.replace(
         '<pre class="shiki',
         `<pre data-language="${language}" class="shiki`
       );
-      
+
       console.log('Shiki highlighting successful for', language);
       return withLanguageAttr;
     } catch (error) {

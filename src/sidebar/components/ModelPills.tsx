@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ModelInfo } from '@/shared/types';
 import { useApp } from '@/sidebar/contexts/AppContext';
+import { ModelSettingsModal } from './ModelSettingsModal';
 
 interface ModelPillsProps {
   models: ModelInfo[];
@@ -9,6 +10,9 @@ interface ModelPillsProps {
 
 export function ModelPills({ models, className = '' }: ModelPillsProps) {
   const { actions } = useApp();
+  const [settingsModal, setSettingsModal] = useState<ModelInfo | null>(null);
+
+  console.log('ModelPills: Rendering with', models.length, 'models:', models.map(m => ({id: m.id, name: m.name, active: m.active})));
 
   if (models.length === 0) {
     return (
@@ -19,19 +23,26 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
   }
 
   return (
-    <div className={`flex gap-2 flex-wrap ${className}`}>
-      {models.map((model) => (
-        <ModelPill
-          key={model.id}
-          model={model}
-          onToggle={() => actions.toggleModel(model.id)}
-          onRightClick={() => {
-            // TODO: Open model settings dialog
-            // TODO: Implement settings dialog
-          }}
+    <>
+      <div className={`flex gap-2 flex-wrap ${className}`}>
+        {models.map((model) => (
+          <ModelPill
+            key={model.id}
+            model={model}
+            onToggle={() => actions.toggleModel(model.id)}
+            onRightClick={() => setSettingsModal(model)}
+          />
+        ))}
+      </div>
+      
+      {settingsModal && (
+        <ModelSettingsModal
+          model={settingsModal}
+          isOpen={true}
+          onClose={() => setSettingsModal(null)}
         />
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 

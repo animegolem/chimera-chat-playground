@@ -264,32 +264,31 @@ async function handleLLMChatRequest(
         stream: false,
         options: {
           temperature: llmRequest.temperature || 0.7,
-          num_predict: llmRequest.maxTokens || 2048
-        }
-      })
+          num_predict: llmRequest.maxTokens || 2048,
+        },
+      }),
     });
 
     if (!response.ok) {
       sendResponse({
         success: false,
-        error: `Ollama API error: ${response.status} ${response.statusText}`
+        error: `Ollama API error: ${response.status} ${response.statusText}`,
       });
       return;
     }
 
     const data = await response.json();
-    
+
     sendResponse({
       success: true,
       response: data.message.content,
       model: data.model,
-      tokenCount: data.eval_count || 0
+      tokenCount: data.eval_count || 0,
     });
-
   } catch (error) {
     sendResponse({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to chat with LLM'
+      error: error instanceof Error ? error.message : 'Failed to chat with LLM',
     });
   }
 }

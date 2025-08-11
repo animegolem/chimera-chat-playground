@@ -14,6 +14,21 @@ import {
 // Simplified background script with Zod validation
 logger.log('Firefox Bootstrap validated background script loaded');
 
+// CPU Spike Detection
+let messageCount = 0;
+let lastLogTime = Date.now();
+
+function logPerformanceMetrics(operation: string) {
+  messageCount++;
+  const now = Date.now();
+  const timeSinceLastLog = now - lastLogTime;
+  
+  if (messageCount % 10 === 0 || timeSinceLastLog > 5000) {
+    logger.log(`[PERF] ${operation} - Messages: ${messageCount}, Time since last: ${timeSinceLastLog}ms`);
+    lastLogTime = now;
+  }
+}
+
 // Default models
 const DEFAULT_MODELS: Record<string, ModelInfo> = {
   'gemma3:4b': {
@@ -96,6 +111,7 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 
 // Message handler with validation
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  logPerformanceMetrics(`Message received: ${message.type}`);
   logger.log('Background received message:', message.type, message);
 
   // Validate and handle message
@@ -296,6 +312,7 @@ async function handleToggleModel(
 async function handleDiscoverOllamaModels(
   sendResponse: (response: ResponseMessage) => void
 ) {
+  logPerformanceMetrics('Starting Ollama discovery');
   try {
     logger.log('Background: Discovering Ollama models via /api/tags');
 

@@ -19,18 +19,19 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [constraintWarning, setConstraintWarning] = useState<string | null>(null);
 
-  // Get active and inactive models separately
-  const activeModels = models.filter((m) => m.active);
-  const inactiveModels = models.filter((m) => !m.active);
+  // Only show active models, sorted alphabetically  
+  const activeModels = models
+    .filter((m) => m.active)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  
   const canAddMore = activeModels.length < MAX_ACTIVE_MODELS;
 
   logger.log(
     'ModelPills: Rendering with',
-    models.length,
-    'total models,',
     activeModels.length,
-    'active models:',
-    activeModels.map((m) => ({ id: m.id, name: m.name, active: m.active }))
+    'active models out of',
+    models.length,
+    'total discovered'
   );
 
   // Handle model toggle with constraint checking
@@ -40,7 +41,7 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
 
     // If trying to activate a model and we're at the limit
     if (!model.active && activeModels.length >= MAX_ACTIVE_MODELS) {
-      const warning = `Maximum ${MAX_ACTIVE_MODELS} models can be active at once. Disable another model first.`;
+      const warning = `Maximum ${MAX_ACTIVE_MODELS} models can be active at once. Remove another model first.`;
       setConstraintWarning(warning);
       
       // Clear warning after 3 seconds
@@ -64,55 +65,29 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
 
   return (
     <>
-      <div className={`space-y-2 ${className}`}>
-        {/* Active models section */}
-        {activeModels.length > 0 && (
-          <div className="flex gap-2 flex-wrap items-center">
-            {activeModels.map((model) => (
-              <ModelPill
-                key={model.id}
-                model={model}
-                isActive={true}
-                onToggle={() => handleToggle(model.id)}
-                onRightClick={() => setSettingsModal(model)}
-              />
-            ))}
-            
-            {/* Add button - only show if under the limit */}
-            {canAddMore && <AddButton onClick={handleAddModel} />}
-          </div>
-        )}
+      <div className={`${className}`}>
+        {/* Active models only: (default-model) (+) layout */}
+        <div className="flex gap-2 flex-wrap items-center">
+          {activeModels.map((model) => (
+            <ModelPill
+              key={model.id}
+              model={model}
+              isActive={true}
+              onToggle={() => handleToggle(model.id)}
+              onRightClick={() => setSettingsModal(model)}
+              showRemove={activeModels.length > 1}
+            />
+          ))}
+          
+          {/* Add button - always show if under 3 model limit */}
+          {canAddMore && <AddButton onClick={handleAddModel} />}
+        </div>
         
-        {/* Inactive models section - show as toggleable options */}
-        {inactiveModels.length > 0 && (
-          <div className="space-y-1">
-            {activeModels.length > 0 && (
-              <div className="text-xs text-gruv-medium font-medium">
-                Available Models:
-              </div>
-            )}
-            <div className="flex gap-2 flex-wrap items-center">
-              {inactiveModels.map((model) => (
-                <ModelPill
-                  key={model.id}
-                  model={model}
-                  isActive={false}
-                  onToggle={() => handleToggle(model.id)}
-                  onRightClick={() => setSettingsModal(model)}
-                />
-              ))}
-              
-              {/* Show add button here if no active models */}
-              {activeModels.length === 0 && <AddButton onClick={handleAddModel} />}
-            </div>
-          </div>
-        )}
-        
-        {/* No models at all - show add button */}
-        {models.length === 0 && (
+        {/* No active models - show message with add button */}
+        {activeModels.length === 0 && (
           <div className="flex items-center gap-2">
             <div className="text-xs text-gruv-medium">
-              No models configured
+              No models active
             </div>
             <AddButton onClick={handleAddModel} />
           </div>
@@ -152,37 +127,41 @@ interface ModelPillProps {
   isActive: boolean;
   onToggle: () => void;
   onRightClick: () => void;
+  showRemove?: boolean;
 }
 
-function ModelPill({ model, isActive, onToggle, onRightClick }: ModelPillProps) {
+function ModelPill({ model, isActive, onToggle, onRightClick, showRemove = false }: ModelPillProps) {
   return (
-    <button
-      onClick={onToggle}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onRightClick();
-      }}
-      className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 transition-all hover:scale-105 ${
-        isActive
-          ? 'bg-opacity-30 border border-solid'
-          : 'bg-opacity-10 border border-dashed hover:bg-opacity-20'
-      }`}
-      style={{
-        backgroundColor: model.color + (isActive ? '30' : '10'),
-        borderColor: model.color,
-        color: model.color,
-      }}
-      title={`${model.name} (${model.type}) - Click to ${isActive ? 'disable' : 'enable'}, right-click for settings`}
-    >
-      <span className={isActive ? '' : 'opacity-60'}>{model.emoji}</span>
-      <span className={isActive ? '' : 'opacity-60'}>{model.name}</span>
-      {model.type === 'api' && !model.settings?.apiKey && (
-        <span className="text-gruv-red-bright text-xs">⚠</span>
+    <div className="flex items-center gap-1">
+      <button
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onRightClick();
+        }}
+        className="px-3 py-1 rounded-full text-xs flex items-center gap-1 transition-all hover:scale-105 bg-opacity-30 border border-solid"
+        style={{
+          backgroundColor: model.color + '30',
+          borderColor: model.color,
+          color: model.color,
+        }}
+        title={`${model.name} (${model.type}) - Right-click for settings`}
+      >
+        <span>{model.emoji}</span>
+        <span>{model.name}</span>
+        {model.type === 'api' && !model.settings?.apiKey && (
+          <span className="text-gruv-red-bright text-xs">⚠</span>
+        )}
+      </button>
+      {showRemove && (
+        <button
+          onClick={onToggle}
+          className="w-4 h-4 rounded-full bg-gruv-red-dim border border-gruv-red text-gruv-red-bright hover:bg-gruv-red hover:text-gruv-dark text-xs flex items-center justify-center transition-all"
+          title={`Remove ${model.name}`}
+        >
+          ×
+        </button>
       )}
-      {!isActive && (
-        <span className="text-xs opacity-60">+</span>
-      )}
-    </button>
+    </div>
   );
 }
 
@@ -195,11 +174,10 @@ function AddButton({ onClick }: AddButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="px-3 py-1 rounded-full text-xs flex items-center gap-1 transition-all hover:scale-105 bg-gruv-medium border border-dashed border-gruv-light text-gruv-light hover:bg-gruv-bright hover:text-gruv-dark"
+      className="px-2 py-1 rounded-full text-xs flex items-center justify-center transition-all hover:scale-105 bg-gruv-medium border border-dashed border-gruv-light text-gruv-light hover:bg-gruv-bright hover:text-gruv-dark"
       title="Add new model (max 3 active)"
     >
       <Plus className="h-3 w-3" />
-      <span>Add</span>
     </button>
   );
 }

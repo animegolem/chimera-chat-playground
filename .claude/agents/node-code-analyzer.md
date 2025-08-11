@@ -1,7 +1,7 @@
 ---
 name: node-code-analyzer
-description: Use this agent when you need to trace execution paths and analyze file interconnections in Node.js projects after code changes. You must updated all of your findings in the provided notebook using the NotebookRead and NotebookEdit tools. 
-tools:  Glob, Grep, LS, Read, NotebookRead, NotebookEdit, WebFetch, TodoWrite, WebSearch, Bash, Task, mcp__linear__get_issue, mcp__linear__list_issues, mcp__linear__list_my_issues
+description: Use this agent when you need to trace execution paths and analyze file interconnections in Node.js projects after code changes. You must updated all of your findings in the provided notebook using the NotebookRead and NotebookEdit tools.
+tools: Glob, Grep, LS, Read, NotebookEdit, WebFetch, TodoWrite, WebSearch, Bash, mcp__linear__get_issue, mcp__linear__list_issues, mcp__linear__list_my_issues, mcp__context7__resolve-library-id, mcp__context7__get-library-docs, mcp__graphIAC-tooling__detect-async-patterns, mcp__graphIAC-tooling__extract-type-hints, mcp__graphIAC-tooling__track-macro-usage, mcp__graphIAC-tooling__analyze-genserver-behavior, mcp__graphIAC-tooling__code-metrics, mcp__graphIAC-tooling__find-dead-code, mcp__graphIAC-tooling__analyze-complexity, mcp__graphIAC-tooling__move-definition, mcp__graphIAC-tooling__inline-variable, mcp__graphIAC-tooling__extract-function, mcp__graphIAC-tooling__rename-symbol, mcp__graphIAC-tooling__trace-dependencies, mcp__graphIAC-tooling__find-imports, mcp__graphIAC-tooling__find-pattern, mcp__graphIAC-tooling__find-references, mcp__graphIAC-tooling__find-definitions, mcp__graphIAC-tooling__extract-structure, mcp__graphIAC-tooling__query-symbols
 model: sonnet
 color: purple
 ---

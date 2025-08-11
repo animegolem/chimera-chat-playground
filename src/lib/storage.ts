@@ -2,6 +2,7 @@
 
 import { STORAGE_KEYS } from '@/shared/constants';
 import { ChatSession, ModelInfo, AppState } from '@/shared/types';
+import { logger } from '@/lib/logger';
 
 interface StorageData {
   [STORAGE_KEYS.SESSIONS]: ChatSession[];
@@ -20,7 +21,7 @@ class Storage {
       const result = await browser.storage.local.get(key);
       return result[key] || null;
     } catch (error) {
-      console.error(`Storage get error for key ${key}:`, error);
+      logger.error(`Storage get error for key ${key}:`, error);
       return null;
     }
   }
@@ -32,7 +33,7 @@ class Storage {
     try {
       await browser.storage.local.set({ [key]: value });
     } catch (error) {
-      console.error(`Storage set error for key ${key}:`, error);
+      logger.error(`Storage set error for key ${key}:`, error);
       throw error;
     }
   }
@@ -41,7 +42,7 @@ class Storage {
     try {
       await browser.storage.local.remove(key);
     } catch (error) {
-      console.error(`Storage remove error for key ${key}:`, error);
+      logger.error(`Storage remove error for key ${key}:`, error);
       throw error;
     }
   }
@@ -50,7 +51,7 @@ class Storage {
     try {
       await browser.storage.local.clear();
     } catch (error) {
-      console.error('Storage clear error:', error);
+      logger.error('Storage clear error:', error);
       throw error;
     }
   }
@@ -146,7 +147,7 @@ class Storage {
       const all = await browser.storage.local.get();
       return JSON.stringify(all).length;
     } catch (error) {
-      console.error('Error calculating storage size:', error);
+      logger.error('Error calculating storage size:', error);
       return 0;
     }
   }
@@ -156,7 +157,7 @@ class Storage {
       const data = await browser.storage.local.get();
       return data as StorageData;
     } catch (error) {
-      console.error('Error exporting data:', error);
+      logger.error('Error exporting data:', error);
       throw error;
     }
   }
@@ -165,7 +166,7 @@ class Storage {
     try {
       await browser.storage.local.set(data);
     } catch (error) {
-      console.error('Error importing data:', error);
+      logger.error('Error importing data:', error);
       throw error;
     }
   }

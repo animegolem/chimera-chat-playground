@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Content script for Firefox Bootstrap extension
 // Handles page interaction, text selection, and DOM content extraction
 
@@ -24,7 +26,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // Async response
 
     default:
-      console.warn('Unknown message type:', message.type);
+      logger.warn('Unknown message type:', message.type);
   }
 });
 

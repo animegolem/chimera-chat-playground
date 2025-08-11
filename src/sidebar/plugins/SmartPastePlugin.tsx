@@ -22,6 +22,7 @@ import {
   $isHorizontalRuleNode,
 } from '@lexical/react/LexicalHorizontalRuleNode';
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import { logger } from '@/lib/logger';
 
 // Horizontal Rule transformer for --- markdown shortcut (same as in LexicalEditor)
 const HR_TRANSFORMER: ElementTransformer = {
@@ -56,7 +57,7 @@ export function SmartPastePlugin({
   useEffect(() => {
     if (!enabled) return;
 
-    console.log('SmartPastePlugin: Registered for paste events');
+    logger.log('SmartPastePlugin: Registered for paste events');
 
     const removePasteListener = editor.registerCommand<PasteCommandType>(
       PASTE_COMMAND,
@@ -83,7 +84,7 @@ export function SmartPastePlugin({
           return false; // No text content to process
         }
 
-        console.log('SmartPastePlugin: Detected paste', {
+        logger.log('SmartPastePlugin: Detected paste', {
           isInCodeBlock,
           textLength: text.length,
           preview: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
@@ -91,7 +92,7 @@ export function SmartPastePlugin({
 
         if (isInCodeBlock) {
           // Inside code block: Preserve raw text, no markdown parsing
-          console.log('SmartPastePlugin: Raw text paste (code context)');
+          logger.log('SmartPastePlugin: Raw text paste (code context)');
 
           // Prevent the default paste first
           if (payload instanceof ClipboardEvent) {
@@ -158,7 +159,7 @@ function handleMarkdownPaste(
 
     if (!hasMarkdownPatterns) {
       // Plain text - just insert it normally but still prevent double paste
-      console.log('SmartPastePlugin: Plain text, inserting directly');
+      logger.log('SmartPastePlugin: Plain text, inserting directly');
 
       // Prevent default first
       if (event instanceof ClipboardEvent) {
@@ -171,9 +172,7 @@ function handleMarkdownPaste(
       return true; // Prevent default paste behavior
     }
 
-    console.log(
-      'SmartPastePlugin: Markdown detected, converting to rich nodes'
-    );
+    logger.log('SmartPastePlugin: Markdown detected, converting to rich nodes');
 
     // Prevent default first
     if (event instanceof ClipboardEvent) {
@@ -193,7 +192,7 @@ function handleMarkdownPaste(
 
     return true; // Prevent default paste behavior
   } catch (error) {
-    console.error('SmartPastePlugin: Error processing markdown paste', error);
+    logger.error('SmartPastePlugin: Error processing markdown paste', error);
 
     // Prevent default first
     if (event instanceof ClipboardEvent) {

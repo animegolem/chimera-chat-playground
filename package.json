@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",
-    "build": "vite build && cp src/background-simple.js dist/background-simple.js",
+    "build": "vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 50",
@@ -42,7 +42,8 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
     "shiki": "^3.9.2",
-    "turndown": "^7.2.0"
+    "turndown": "^7.2.0",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.1",

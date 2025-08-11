@@ -16,6 +16,7 @@ export interface ModelInfo {
   color: string;
   type: 'local' | 'api';
   active: boolean;
+  provider?: string; // e.g., 'ollama', 'openrouter', 'openai'
   settings: ModelSettings;
 }
 

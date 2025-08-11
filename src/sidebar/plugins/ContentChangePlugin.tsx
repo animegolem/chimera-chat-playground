@@ -7,7 +7,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { COMMAND_PRIORITY_LOW } from 'lexical';
 
 interface ContentChangePluginProps {
-  onContentChange?: (content?: string) => void;
+  onContentChange?: (_content?: string) => void;
 }
 
 export function ContentChangePlugin({

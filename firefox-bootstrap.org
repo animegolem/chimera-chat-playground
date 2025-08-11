@@ -853,3 +853,60 @@ export default FirefoxBootstrap;
 - The 'CTRL+ENTER' button shows a brighter white but it'd be nicer if it used the same green as the files + line counter on hover.
 - Possible to implement a 'ctrl+c' command to clear the text box like a terminal?
 - There is a world where it makes sense to make an MCP that can use docling to write out notes etc.
+
+
+1. *Model Selection UI*
+   - I think maybe somewhere in the middle if we can? I like our pill buttons overall. I think the drop down is maybe a ui element in the right click menu like so
+
+
+┌───────────────────────────────────────────┐
+│ ← Back │ ⚙️ Settings: Claude-Opus
+├───────────────────────────────────────────┤
+│
+ |    Display Name     [ Claude-Opus         ]
+|     Provider          [OpenRouter]
+│   Model ID         [ A Logo claude-3... ▼]
+│   Terminal Color   [ 🎨 #D97706           ]
+│
+│
+│
+│ 🌡️ Temperature   (────────────────●──)                       
+│
+│ 🧠 System Prompt                                                                         
+│  ┌─────────────────────────────────────┐
+│  │ You are an expert AI architect...
+│  └─────────────────────────────────────┘
+│                                                                                                                │
+
+- This has our overall top line UI like
+
+( 💎 Gemma3:27b ) [➕]
+
+where it defaults to 1 and we cap the number of pills at like 3.
+
+2. Multi-Model Conversation Views
+   - The simple option is fine here
+
+3. One time into that tells you to make the change to open up ollama makes sense yeah. (OLLAMA_ORIGINS to "*")
+
+4. i think maybe captured in the idea above?
+
+5. Thoughts?
+
+     Recommendation A: The Gold Standard (True Encryption)
+
+  This is the approach used by password managers like Bitwarden.
+
+   1. On first use, require the user to set a Master Password.
+   2. Use this master password as the input for PBKDF2 to derive the encryption key.
+   3. When the browser starts, the API key vault is locked. The UI prompts the user for their master password.
+   4. The user enters the password, which is held in memory in the background script for the session. It's used to
+      decrypt the API key(s) for use.
+   5. The plaintext master password is then discarded from memory.
+
+   * Pros: This is genuinely secure. An attacker with the local files can do nothing without the user's master
+     password.
+   * Cons: This introduces significant friction. It's the same UX as the "Session Storage Option" you outlined,
+     but with the benefit of persistence.
+
+6.

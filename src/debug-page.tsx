@@ -1,16 +1,14 @@
 import React, { useCallback } from 'react';
-import {
-  LexicalEditor,
-  LexicalEditorRef,
-} from './sidebar/components/LexicalEditor';
+import { logger } from '@/lib/logger';
+import { LexicalEditor } from './sidebar/components/LexicalEditor';
 
 function DebugPage() {
   const handleChange = useCallback((content: string) => {
-    console.log('Content changed:', content);
+    logger.log('Content changed:', content);
   }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    console.log('Key pressed:', event.key);
+    logger.log('Key pressed:', event.key);
   }, []);
 
   return (

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Paperclip } from 'lucide-react';
 import { useApp } from '@/sidebar/contexts/AppContext';
 import { LexicalEditor, LexicalEditorRef } from './LexicalEditor';
+import { logger } from '@/lib/logger';
 import {
   $getSelection,
   $createTextNode,
@@ -39,12 +40,12 @@ export function InputArea({ className = '' }: InputAreaProps) {
   }, []);
 
   const handleSend = useCallback(async () => {
-    console.log('DEBUG: handleSend called');
+    logger.log('DEBUG: handleSend called');
 
     // Get current markdown from editor instead of plain text
     const currentMarkdown = editorRef.current?.getMarkdown() || '';
-    console.log('DEBUG: currentMarkdown:', currentMarkdown);
-    console.log(
+    logger.log('DEBUG: currentMarkdown:', currentMarkdown);
+    logger.log(
       'DEBUG: state.loading:',
       state.loading,
       'state.sending:',
@@ -52,7 +53,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
     );
 
     if (!currentMarkdown.trim() || state.loading || state.sending) {
-      console.log('DEBUG: Early return - no content or loading/sending');
+      logger.log('DEBUG: Early return - no content or loading/sending');
       return;
     }
 
@@ -74,7 +75,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
     setEstimatedTokens(0);
 
     // Send the message (this runs async in background)
-    await actions.sendMessage(currentMarkdown.trim(), activeModelIds);
+    await actions.sendMessage(currentMarkdown.trim());
   }, [state.loading, state.sending, state.activeModelIds, actions]);
 
   const handleKeyDown = useCallback(
@@ -102,7 +103,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
       const currentImageCount = imageMatches.length;
 
       if (currentImageCount < fileCount) {
-        console.log('DEBUG: Image(s) deleted, updating counter');
+        logger.log('DEBUG: Image(s) deleted, updating counter');
         // Rough estimate: assume deleted images were average size
         const avgTokensPerImage = estimatedTokens / fileCount;
         const removedImages = fileCount - currentImageCount;
@@ -117,7 +118,7 @@ export function InputArea({ className = '' }: InputAreaProps) {
   // Handle image drops - insert text indicator like debug page
   const handleImageDrop = useCallback(
     (_base64: string, fileName: string) => {
-      console.log('DEBUG: Image dropped:', fileName);
+      logger.log('DEBUG: Image dropped:', fileName);
 
       // Estimate tokens (rough approximation based on typical image sizes)
       const tokenEstimate = Math.round(Math.random() * 500 + 100); // 100-600 tokens estimate
@@ -128,19 +129,19 @@ export function InputArea({ className = '' }: InputAreaProps) {
 
       // Insert [Image: filename.png] text into the editor
       if (editorRef.current) {
-        console.log('DEBUG: Editor ref exists');
+        logger.log('DEBUG: Editor ref exists');
         const editor = editorRef.current.getEditor();
 
         editor.update(() => {
           const selection = $getSelection();
-          console.log('DEBUG: Selection:', selection);
+          logger.log('DEBUG: Selection:', selection);
 
           if (selection) {
             const imageText = `[Image: ${fileName}] `;
-            console.log('DEBUG: Inserting text:', imageText);
+            logger.log('DEBUG: Inserting text:', imageText);
             selection.insertText(imageText);
           } else {
-            console.log('DEBUG: No selection, trying to insert at end');
+            logger.log('DEBUG: No selection, trying to insert at end');
             // If no selection, insert at the root
             const textNode = $createTextNode(`[Image: ${fileName}] `);
             const root = $getRoot();
@@ -153,20 +154,20 @@ export function InputArea({ className = '' }: InputAreaProps) {
         // Update content state
         setTimeout(checkContent, 10);
       } else {
-        console.log('DEBUG: No editor ref');
+        logger.log('DEBUG: No editor ref');
       }
     },
     [checkContent]
   );
 
   const handleFocus = useCallback(() => {
-    console.log('DEBUG: Focus event');
+    logger.log('DEBUG: Focus event');
     setIsFocused(true);
     checkContent();
   }, [checkContent]);
 
   const handleBlur = useCallback(() => {
-    console.log('DEBUG: Blur event');
+    logger.log('DEBUG: Blur event');
     setIsFocused(false);
     checkContent();
   }, [checkContent]);

@@ -1,4 +1,5 @@
 import TurndownService from 'turndown';
+import { logger } from '@/lib/logger';
 
 /**
  * HTML to Markdown conversion utility
@@ -70,7 +71,7 @@ class MarkdownConverter {
     try {
       return this.turndownService.turndown(html);
     } catch (error) {
-      console.error('Error converting HTML to Markdown:', error);
+      logger.error('Error converting HTML to Markdown:', error);
       // Fallback: strip HTML tags and return plain text
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
@@ -87,7 +88,7 @@ class MarkdownConverter {
       await navigator.clipboard.writeText(markdown);
       return true;
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      logger.error('Failed to copy to clipboard:', error);
       return false;
     }
   }

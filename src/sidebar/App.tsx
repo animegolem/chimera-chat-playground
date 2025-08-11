@@ -6,15 +6,20 @@ import { InputArea } from './components/InputArea';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { EXTENSION_INFO } from '@/shared/constants';
+import { logger } from '@/lib/logger';
 
 function AppContent() {
   const { state } = useApp();
 
-  console.log('App: Rendering with state:', {
+  logger.log('App: Rendering with state:', {
     models: state.models?.length || 0,
-    modelDetails: state.models?.map(m => ({id: m.id, name: m.name, active: m.active})),
+    modelDetails: state.models?.map((m) => ({
+      id: m.id,
+      name: m.name,
+      active: m.active,
+    })),
     loading: state.loading,
-    error: state.error
+    error: state.error,
   });
 
   if (state.loading) {
@@ -51,7 +56,11 @@ function AppContent() {
   }
 
   const allModels = state.models || [];
-  console.log('App: allModels for rendering:', allModels.length, allModels.map(m => ({id: m.id, name: m.name, active: m.active})));
+  logger.log(
+    'App: allModels for rendering:',
+    allModels.length,
+    allModels.map((m) => ({ id: m.id, name: m.name, active: m.active }))
+  );
 
   return (
     <div className="flex flex-col h-screen bg-gruv-dark text-gruv-light font-mono">

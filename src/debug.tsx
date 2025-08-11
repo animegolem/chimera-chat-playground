@@ -1,22 +1,20 @@
 import React, { useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-  LexicalEditor,
-  LexicalEditorRef,
-} from './sidebar/components/LexicalEditor';
+import { logger } from '@/lib/logger';
+import { LexicalEditor } from './sidebar/components/LexicalEditor';
 // Using Tailwind classes directly instead of importing CSS
 
 function DebugApp() {
   const handleChange = useCallback((content: string) => {
-    console.log('Content changed:', content);
+    logger.log('Content changed:', content);
   }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey);
+    logger.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey);
 
     // Test Ctrl+Enter functionality
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-      console.log('🚀 Ctrl+Enter detected - this should trigger send!');
+      logger.log('🚀 Ctrl+Enter detected - this should trigger send!');
       event.preventDefault();
       alert('Ctrl+Enter works! This would send the message.');
       return;
@@ -26,9 +24,9 @@ function DebugApp() {
     setTimeout(() => {
       const editorElement = document.querySelector('[contenteditable="true"]');
       if (editorElement) {
-        console.log('DOM structure after keystroke:');
-        console.log(editorElement.innerHTML);
-        console.log('Text content:', editorElement.textContent);
+        logger.log('DOM structure after keystroke:');
+        logger.log(editorElement.innerHTML);
+        logger.log('Text content:', editorElement.textContent);
       }
     }, 10);
   }, []);

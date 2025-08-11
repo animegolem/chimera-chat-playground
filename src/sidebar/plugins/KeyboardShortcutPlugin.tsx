@@ -5,6 +5,7 @@
 import { useEffect } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { COMMAND_PRIORITY_LOW, KEY_DOWN_COMMAND } from 'lexical';
+import { logger } from '@/lib/logger';
 
 interface KeyboardShortcutPluginProps {
   onKeyDown?: (event: KeyboardEvent) => void;
@@ -21,7 +22,7 @@ export function KeyboardShortcutPlugin({
     const removeKeyCommand = editor.registerCommand(
       KEY_DOWN_COMMAND,
       (event: KeyboardEvent) => {
-        console.log(
+        logger.log(
           'DEBUG: KeyboardShortcutPlugin triggered, key:',
           event.key,
           'ctrlKey:',

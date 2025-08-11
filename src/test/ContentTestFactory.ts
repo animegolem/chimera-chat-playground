@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Test factory for generating large content payloads to test edge cases
  * and performance issues with message sending
@@ -57,7 +59,7 @@ created by [deleted]a community for 2 years
 MODERATORS
 
     HOLUPREDICTIONS
-     
+
     about moderation team »
 
 account activity
@@ -67,7 +69,7 @@ account activity
 IBM Granite 3.3 ModelsNew Model (huggingface.co)
 
 submitted 3 months ago by suitable_cowboy
- 
+
 
     Announcement Post
     3.3 Speech Model
@@ -82,18 +84,18 @@ content policy
 
 [+]
 ibm
- 
+
 276 points 3 months ago (102 children)
 
 [+]
 Bakoro
- 
+
 67 points 3 months ago (22 children)
 
 [–]
 ApprehensiveAd3629
- 
-47 points 3 months ago 
+
+47 points 3 months ago
 
 Yeah I like granite models(gpu poor here) Lets test now
 
@@ -101,8 +103,8 @@ Yeah I like granite models(gpu poor here) Lets test now
 
 [–]
 Foreign-Beginning-49
- 
-llama.cpp 34 points 3 months ago* 
+
+llama.cpp 34 points 3 months ago*
 
 Best option For gpu poor even on compute constrained devices. Kudos to IBM for not leaving the masses out of the LLM game.
 
@@ -227,7 +229,7 @@ This is **bold text** and this is *italic text*. Here's some \`inline code\` and
 
 \`\`\`javascript
 function testCode() {
-  console.log("Testing code blocks");
+  logger.log("Testing code blocks");
   return true;
 }
 \`\`\`
@@ -235,7 +237,7 @@ function testCode() {
 > This is a blockquote with important information.
 
 - List item 1
-- List item 2  
+- List item 2
 - List item 3
 
 1. Numbered item 1
@@ -261,7 +263,7 @@ interface TestCase {
 Regular paragraph with *emphasis* and \`code spans\`. The content includes various formatting elements to ensure our editor handles complex content correctly during large payload scenarios.
 
 - **Performance testing**
-- *Race condition detection*  
+- *Race condition detection*
 - \`State management verification\``;
     }
   }
@@ -283,7 +285,7 @@ export class ContentTestDebugger {
       event,
       data,
     });
-    console.log(`[ContentTest] ${event}`, data);
+    logger.log(`[ContentTest] ${event}`, data);
   }
 
   static getLogs(): typeof ContentTestDebugger.logs {

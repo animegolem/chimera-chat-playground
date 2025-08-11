@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firefox Bootstrap - UI Redesign Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1d2021;
+            color: #ebdbb2;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #b8bb26;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        h2 {
+            color: #83a598;
+            margin: 30px 0 15px;
+            font-size: 20px;
+            border-bottom: 1px solid #504945;
+            padding-bottom: 5px;
+        }
+        
+        h3 {
+            color: #8ec07c;
+            margin: 20px 0 10px;
+            font-size: 16px;
+        }
+        
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .mockup-section {
+            background: #282828;
+            border: 1px solid #504945;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .mockup-section.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .sidebar-mockup {
+            background: #282828;
+            border: 1px solid #504945;
+            border-radius: 8px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            padding: 15px;
+            border-bottom: 1px solid #504945;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .model-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .dropdown {
+            background: #1d2021;
+            border: 1px solid #504945;
+            color: #ebdbb2;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .add-btn {
+            background: #458588;
+            color: #1d2021;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .add-btn:hover {
+            background: #83a598;
+        }
+        
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .user-message {
+            background: #3c3836;
+            margin-left: 20%;
+        }
+        
+        .ai-message {
+            background: #1d2021;
+            border: 1px solid #504945;
+            margin-right: 20%;
+        }
+        
+        .model-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+        
+        .parallel-responses {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .parallel-response {
+            flex: 1;
+            background: #1d2021;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .input-area {
+            padding: 15px;
+            border-top: 1px solid #504945;
+        }
+        
+        .settings-modal {
+            background: #282828;
+            border: 1px solid #504945;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #8ec07c;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            background: #1d2021;
+            border: 1px solid #504945;
+            color: #ebdbb2;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .form-group input[type="range"] {
+            padding: 0;
+        }
+        
+        .color-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .color-option.selected {
+            border-color: #ebdbb2;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+        
+        .btn-primary {
+            background: #458588;
+            color: #1d2021;
+        }
+        
+        .btn-secondary {
+            background: #504945;
+            color: #ebdbb2;
+        }
+        
+        .wizard-steps {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #504945;
+        }
+        
+        .wizard-step {
+            flex: 1;
+            text-align: center;
+            opacity: 0.5;
+        }
+        
+        .wizard-step.active {
+            opacity: 1;
+            color: #83a598;
+        }
+        
+        .wizard-step.completed {
+            opacity: 1;
+            color: #b8bb26;
+        }
+        
+        .provider-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .provider-card {
+            background: #1d2021;
+            border: 1px solid #504945;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .provider-card:hover {
+            border-color: #83a598;
+            background: #3c3836;
+        }
+        
+        .provider-card.selected {
+            border-color: #83a598;
+            background: #3c3836;
+        }
+        
+        .provider-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .code-block {
+            background: #1d2021;
+            border: 1px solid #504945;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        
+        .note {
+            background: #3c3836;
+            border-left: 3px solid #fabd2f;
+            padding: 10px 15px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        .pill-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+
+        .model-pill {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid;
+            cursor: pointer;
+        }
+
+        .model-pill.active {
+            background: rgba(131, 165, 152, 0.2);
+            border-color: #83a598;
+            color: #83a598;
+        }
+
+        .model-pill.inactive {
+            background: #282828;
+            border-color: #504945;
+            color: #504945;
+        }
+
+        .comparison-arrow {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+            color: #b8bb26;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦊 Firefox Bootstrap - UI Redesign Mockup</h1>
+        <p style="color: #a89984; margin-bottom: 30px;">
+            Interactive mockup showing proposed UI changes for model management and multi-model conversations
+        </p>
+
+        <h2>1. Model Selection UI Comparison</h2>
+        <div class="mockup-grid">
+            <div class="mockup-section">
+                <h3>Current: Pill-Based UI</h3>
+                <p style="margin-bottom: 15px; font-size: 14px; color: #a89984;">
+                    All models shown as toggleable pills
+                </p>
+                <div class="pill-container">
+                    <div class="model-pill active">💎 Gemma 3 4B</div>
+                    <div class="model-pill inactive">🦙 Llama 3.2 7B</div>
+                    <div class="model-pill inactive">🔬 Phi-3 Mini</div>
+                    <div class="model-pill inactive">⚡ Mistral 7B</div>
+                    <div class="model-pill active">🤖 Claude 3 Opus</div>
+                    <div class="model-pill inactive">🧠 GPT-4</div>
+                </div>
+                <div class="note">
+                    <strong>Issues:</strong> Gets cluttered with many models, hard to see which is primary, 
+                    no clear hierarchy between local/API models
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Proposed: Dropdown + Add Button</h3>
+                <p style="margin-bottom: 15px; font-size: 14px; color: #a89984;">
+                    Clean single selector with add capability
+                </p>
+                <div class="model-selector">
+                    <div class="dropdown">
+                        <span>💎 Gemma 3 4B (Local)</span>
+                        <span>▼</span>
+                    </div>
+                    <button class="add-btn">+ Add Model</button>
+                </div>
+                <div class="note" style="margin-top: 15px;">
+                    <strong>Benefits:</strong> Cleaner interface, scales to many models, 
+                    clear primary model selection, room for status indicators
+                </div>
+            </div>
+        </div>
+
+        <div class="comparison-arrow">⬇️</div>
+
+        <h2>2. Multi-Model Conversation Views</h2>
+        <div class="mockup-section full-width">
+            <h3>Option A: Sequential Responses (Simple)</h3>
+            <div class="chat-area" style="background: #1d2021; padding: 20px; border-radius: 8px;">
+                <div class="message user-message">
+                    <strong>You:</strong> Explain quantum computing in simple terms
+                </div>
+                
+                <div class="message ai-message">
+                    <div class="model-indicator" style="color: #83a598;">
+                        💎 Gemma 3 4B
+                    </div>
+                    Quantum computing uses quantum bits (qubits) that can be both 0 and 1 simultaneously...
+                </div>
+                
+                <div class="message ai-message">
+                    <div class="model-indicator" style="color: #fe8019;">
+                        🤖 Claude 3 Opus
+                    </div>
+                    Think of quantum computing like this: regular computers are like reading one book at a time...
+                </div>
+            </div>
+            <p style="margin-top: 10px; font-size: 14px; color: #a89984;">
+                Each model responds in sequence, tagged with its identity
+            </p>
+        </div>
+
+        <div class="mockup-section full-width">
+            <h3>Option B: Parallel Response Columns (Advanced)</h3>
+            <div class="chat-area" style="background: #1d2021; padding: 20px; border-radius: 8px;">
+                <div class="message user-message">
+                    <strong>You:</strong> Explain quantum computing in simple terms
+                </div>
+                
+                <div class="parallel-responses">
+                    <div class="parallel-response" style="border: 1px solid #83a598;">
+                        <div class="model-indicator" style="color: #83a598;">
+                            💎 Gemma 3 4B
+                        </div>
+                        Quantum computing uses quantum bits...
+                    </div>
+                    <div class="parallel-response" style="border: 1px solid #fe8019;">
+                        <div class="model-indicator" style="color: #fe8019;">
+                            🤖 Claude 3 Opus
+                        </div>
+                        Think of quantum computing like this...
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 10px; font-size: 14px; color: #a89984;">
+                Models respond side-by-side for easy comparison
+            </p>
+        </div>
+
+        <h2>3. Add Model Wizard Flow</h2>
+        <div class="mockup-section full-width">
+            <div class="wizard-steps">
+                <div class="wizard-step completed">1. Select Provider</div>
+                <div class="wizard-step active">2. Choose Model</div>
+                <div class="wizard-step">3. Configure</div>
+                <div class="wizard-step">4. Test Connection</div>
+            </div>
+
+            <h3>Step 1: Select Provider</h3>
+            <div class="provider-cards">
+                <div class="provider-card selected">
+                    <div class="provider-icon">🏠</div>
+                    <strong>Local (Ollama)</strong>
+                    <p style="font-size: 12px; margin-top: 5px; color: #a89984;">
+                        Connect to local models
+                    </p>
+                </div>
+                <div class="provider-card">
+                    <div class="provider-icon">🌐</div>
+                    <strong>OpenRouter</strong>
+                    <p style="font-size: 12px; margin-top: 5px; color: #a89984;">
+                        Access 100+ models
+                    </p>
+                </div>
+                <div class="provider-card">
+                    <div class="provider-icon">🤖</div>
+                    <strong>OpenAI</strong>
+                    <p style="font-size: 12px; margin-top: 5px; color: #a89984;">
+                        GPT-4, GPT-3.5
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <h2>4. Model Configuration Screen</h2>
+        <div class="mockup-grid">
+            <div class="mockup-section">
+                <h3>Local Model Settings</h3>
+                <div class="settings-modal">
+                    <div class="form-group">
+                        <label>Display Name</label>
+                        <input type="text" value="Gemma 3 4B" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Model ID</label>
+                        <select>
+                            <option>gemma3:4b</option>
+                            <option>llama3.2:7b</option>
+                            <option>phi3:mini</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Endpoint</label>
+                        <input type="text" value="http://localhost:11434" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Color Theme</label>
+                        <div class="color-options">
+                            <div class="color-option selected" style="background: #83a598;"></div>
+                            <div class="color-option" style="background: #b8bb26;"></div>
+                            <div class="color-option" style="background: #fb4934;"></div>
+                            <div class="color-option" style="background: #fe8019;"></div>
+                            <div class="color-option" style="background: #d3869b;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>API Model Settings</h3>
+                <div class="settings-modal">
+                    <div class="form-group">
+                        <label>Display Name</label>
+                        <input type="text" value="Claude 3 Opus" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <select>
+                            <option>OpenRouter</option>
+                            <option>OpenAI</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Model ID</label>
+                        <select>
+                            <option>anthropic/claude-3-opus</option>
+                            <option>anthropic/claude-3-sonnet</option>
+                            <option>openai/gpt-4</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>API Key 🔒</label>
+                        <input type="password" value="sk-...4hJ9" />
+                        <p style="font-size: 12px; margin-top: 5px; color: #fabd2f;">
+                            ⚠️ Stored encrypted in browser storage
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>5. Security Considerations</h2>
+        <div class="mockup-section full-width">
+            <h3>API Key Storage Options</h3>
+            <div class="code-block">
+                <strong style="color: #b8bb26;">// Proposed encryption approach</strong><br>
+                1. User enters API key<br>
+                2. Generate salt using crypto.getRandomValues()<br>
+                3. Derive key using PBKDF2 with user's extension ID<br>
+                4. Encrypt with AES-GCM via Web Crypto API<br>
+                5. Store encrypted blob in browser.storage.local<br>
+                6. Decrypt only in background script for API calls<br><br>
+                
+                <strong style="color: #fb4934;">// Never:</strong><br>
+                - Store plaintext keys<br>
+                - Log keys to console<br>
+                - Expose keys to content scripts<br>
+                - Send keys to sidebar except masked (****4hJ9)
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div>
+                    <h4 style="color: #8ec07c; margin-bottom: 10px;">Session Storage Option</h4>
+                    <ul style="font-size: 14px; line-height: 1.8;">
+                        <li>🔓 Keys stored only in memory</li>
+                        <li>✅ Lost on browser restart</li>
+                        <li>✅ Maximum security</li>
+                        <li>❌ Must re-enter each session</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: #8ec07c; margin-bottom: 10px;">Persistent Storage Option</h4>
+                    <ul style="font-size: 14px; line-height: 1.8;">
+                        <li>🔒 Keys encrypted and stored</li>
+                        <li>✅ Survives browser restart</li>
+                        <li>⚠️ Encrypted but still local</li>
+                        <li>✅ Convenient for users</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h2>6. Implementation Priority</h2>
+        <div class="mockup-section full-width">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                <div style="background: #3c3836; padding: 15px; border-radius: 8px; border-left: 3px solid #b8bb26;">
+                    <strong style="color: #b8bb26;">Phase 1: Security</strong>
+                    <ul style="font-size: 14px; margin-top: 10px; list-style: none;">
+                        <li>✓ Encryption layer</li>
+                        <li>✓ Secure storage</li>
+                        <li>✓ Background gateway</li>
+                    </ul>
+                </div>
+                <div style="background: #3c3836; padding: 15px; border-radius: 8px; border-left: 3px solid #83a598;">
+                    <strong style="color: #83a598;">Phase 2: UI Cleanup</strong>
+                    <ul style="font-size: 14px; margin-top: 10px; list-style: none;">
+                        <li>✓ Dropdown selector</li>
+                        <li>✓ Add model wizard</li>
+                        <li>✓ Settings redesign</li>
+                    </ul>
+                </div>
+                <div style="background: #3c3836; padding: 15px; border-radius: 8px; border-left: 3px solid #fe8019;">
+                    <strong style="color: #fe8019;">Phase 3: Multi-Model</strong>
+                    <ul style="font-size: 14px; margin-top: 10px; list-style: none;">
+                        <li>✓ Parallel requests</li>
+                        <li>✓ Response filtering</li>
+                        <li>✓ Model indicators</li>
+                    </ul>
+                </div>
+                <div style="background: #3c3836; padding: 15px; border-radius: 8px; border-left: 3px solid #d3869b;">
+                    <strong style="color: #d3869b;">Phase 4: Providers</strong>
+                    <ul style="font-size: 14px; margin-top: 10px; list-style: none;">
+                        <li>✓ OpenRouter API</li>
+                        <li>✓ OpenAI direct</li>
+                        <li>✓ Model discovery</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="note" style="margin-top: 30px; background: #3c3836; border-left-color: #83a598;">
+            <strong>Key Design Decisions:</strong><br>
+            • Start with simple sequential multi-model (Option A) - easier to implement<br>
+            • Prioritize security before adding API providers<br>
+            • Keep existing chat functionality working during transition<br>
+            • Use dropdown for cleaner UI that scales better<br>
+            • Allow both session and persistent key storage with clear indicators
+        </div>
+    </div>
+</body>
+</html>

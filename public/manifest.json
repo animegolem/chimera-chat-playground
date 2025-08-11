@@ -19,7 +19,8 @@
   ],
   
   "background": {
-    "scripts": ["background-simple.js"]
+    "scripts": ["background-validated.js"],
+    "type": "module"
   },
   
   "content_scripts": [

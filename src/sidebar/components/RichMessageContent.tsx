@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sanitizer } from '@/sidebar/utils/sanitizer';
 import { useApp } from '@/sidebar/contexts/AppContext';
+import { logger } from '@/lib/logger';
 
 interface RichMessageContentProps {
   content: string;
@@ -37,7 +38,7 @@ export function RichMessageContent({
           setSanitizedHtml(html);
         }
       } catch (error) {
-        console.warn('Async processing failed, falling back to sync:', error);
+        logger.warn('Async processing failed, falling back to sync:', error);
         if (!isCancelled) {
           // Fallback to sync version
           const fallbackHtml = sanitizer.sanitizeAIResponse(content);
@@ -74,24 +75,24 @@ export function RichMessageContent({
       let languageAttr = 'text';
 
       // Debug: log element attributes and full HTML
-      console.log('Pre element:', pre);
-      console.log('Pre outerHTML:', pre.outerHTML);
-      console.log('Pre className:', pre.className);
-      console.log('Pre data-language:', pre.getAttribute('data-language'));
-      console.log(
+      logger.log('Pre element:', pre);
+      logger.log('Pre outerHTML:', pre.outerHTML);
+      logger.log('Pre className:', pre.className);
+      logger.log('Pre data-language:', pre.getAttribute('data-language'));
+      logger.log(
         'Pre all attributes:',
         pre
           .getAttributeNames()
           .map((name) => `${name}="${pre.getAttribute(name)}"`)
       );
-      console.log('Code element:', codeElement);
-      console.log('Code outerHTML:', codeElement.outerHTML);
-      console.log('Code className:', codeElement.className);
-      console.log(
+      logger.log('Code element:', codeElement);
+      logger.log('Code outerHTML:', codeElement.outerHTML);
+      logger.log('Code className:', codeElement.className);
+      logger.log(
         'Code data-language:',
         codeElement.getAttribute('data-language')
       );
-      console.log(
+      logger.log(
         'Code all attributes:',
         codeElement
           .getAttributeNames()
@@ -122,7 +123,7 @@ export function RichMessageContent({
         if (match) languageAttr = match[1];
       }
 
-      console.log('Final detected language:', languageAttr);
+      logger.log('Final detected language:', languageAttr);
 
       // Create language label (non-interactable, positioned to the left of copy button)
       const languageLabel = document.createElement('span');

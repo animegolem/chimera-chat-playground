@@ -115,8 +115,8 @@ export interface ResponseMessage {
   model?: string;
   tokenCount?: number;
 
-  // Generic data
-  data?: any;
+  // Response data (varies by message type)
+  data?: Record<string, unknown>;
 }
 
 // Union of all message types
@@ -140,7 +140,7 @@ export interface MessageSender {
 export interface ExtensionError {
   code: string;
   message: string;
-  context?: any;
+  context?: Record<string, unknown>;
 }
 
 export const ERROR_CODES = {

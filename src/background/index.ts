@@ -14,8 +14,9 @@ import {
   EXTENSION_INFO,
 } from '@/shared/constants';
 import { ModelInfo } from '@/shared/types';
+import { logger } from '@/lib/logger';
 
-console.log(
+logger.log(
   `${EXTENSION_INFO.NAME} ${EXTENSION_INFO.VERSION} background script loaded`
 );
 
@@ -33,7 +34,7 @@ async function initialize() {
 
 // Extension installation handler
 browser.runtime.onInstalled.addListener(async (details) => {
-  console.log('Firefox Bootstrap installed:', details.reason);
+  logger.log('Firefox Bootstrap installed:', details.reason);
 
   if (FEATURE_FLAGS.ENABLE_CONTEXT_MENU) {
     // Create context menu items
@@ -44,7 +45,7 @@ browser.runtime.onInstalled.addListener(async (details) => {
         contexts: ['selection'],
       });
     } catch (error) {
-      console.error('Failed to create context menu:', error);
+      logger.error('Failed to create context menu:', error);
     }
   }
 
@@ -61,12 +62,12 @@ if (
   typeof browser.tabs.group !== 'undefined'
 ) {
   // Note: Firefox tab groups API is experimental (137+)
-  console.log('Tab groups API detected - tab naming feature available');
+  logger.log('Tab groups API detected - tab naming feature available');
 
   // TODO: Implement tab group listeners when API is stable in Firefox
   // For now, focusing on chat interface functionality
 } else {
-  console.log(
+  logger.log(
     'Tab groups API not available - extension will work without auto-naming'
   );
 }
@@ -95,9 +96,9 @@ browser.runtime.onMessage.addListener(
     sendResponse: (response: ResponseMessage) => void
   ) => {
     if (FEATURE_FLAGS.DEBUG_MESSAGES) {
-      console.log(
+      logger.log(
         'Background received message:',
-        (message as any).type,
+(message as { type?: string })?.type || 'unknown',
         message
       );
     }
@@ -143,14 +144,14 @@ async function handleMessage(
         break;
 
       default:
-        console.warn('Unknown message type:', message.type);
+        logger.warn('Unknown message type:', message.type);
         sendResponse({
           success: false,
           error: `Unknown message type: ${message.type}`,
         });
     }
   } catch (error) {
-    console.error('Error handling message:', error);
+    logger.error('Error handling message:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -248,7 +249,7 @@ async function handleToggleModel(
 }
 
 async function handleLLMChatRequest(
-  llmRequest: any,
+  llmRequest: Record<string, unknown>,
   sendResponse: (response: ResponseMessage) => void
 ) {
   try {
@@ -383,7 +384,7 @@ function broadcastMessage(message: BackgroundMessage) {
   browser.runtime.sendMessage(message).catch(() => {
     // Sidebar might not be open, ignore error
     if (FEATURE_FLAGS.DEBUG_MESSAGES) {
-      console.log('Message not delivered (sidebar closed):', message.type);
+      logger.log('Message not delivered (sidebar closed):', message.type);
     }
   });
 }

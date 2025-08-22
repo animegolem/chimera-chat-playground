@@ -10,11 +10,11 @@ interface OllamaInstructionsModalProps {
 // Detect user's operating system
 function getOperatingSystem(): 'macos' | 'linux' | 'windows' | 'unknown' {
   const userAgent = navigator.userAgent.toLowerCase();
-  
+
   if (userAgent.includes('mac')) return 'macos';
   if (userAgent.includes('linux')) return 'linux';
   if (userAgent.includes('win')) return 'windows';
-  
+
   return 'unknown';
 }
 
@@ -29,19 +29,22 @@ const instructions: Record<string, InstructionStep[]> = {
   macos: [
     {
       title: 'Set Environment Variable',
-      description: 'Open Terminal and run the following command to set the OLLAMA_ORIGINS variable:',
+      description:
+        'Open Terminal and run the following command to set the OLLAMA_ORIGINS variable:',
       command: 'launchctl setenv OLLAMA_ORIGINS "*"',
       note: 'This sets the environment variable for the current session.',
     },
     {
       title: 'Make it Permanent (Optional)',
-      description: 'To make this setting persist across reboots, add it to your shell profile:',
+      description:
+        'To make this setting persist across reboots, add it to your shell profile:',
       command: 'echo \'export OLLAMA_ORIGINS="*"\' >> ~/.zshrc',
       note: 'Restart your terminal or run "source ~/.zshrc" to apply.',
     },
     {
       title: 'Restart Ollama',
-      description: 'Quit Ollama completely and restart it to apply the changes.',
+      description:
+        'Quit Ollama completely and restart it to apply the changes.',
       note: 'You can quit Ollama from the menu bar or Activity Monitor.',
     },
   ],
@@ -75,18 +78,26 @@ const instructions: Record<string, InstructionStep[]> = {
     {
       title: 'Make it Permanent',
       description: 'To make this setting permanent, use:',
-      command: '[Environment]::SetEnvironmentVariable("OLLAMA_ORIGINS", "*", "User")',
+      command:
+        '[Environment]::SetEnvironmentVariable("OLLAMA_ORIGINS", "*", "User")',
       note: 'This sets the environment variable permanently for your user account.',
     },
     {
       title: 'Restart Ollama',
-      description: 'Close Ollama completely and restart it to apply the changes.',
+      description:
+        'Close Ollama completely and restart it to apply the changes.',
       note: 'Check the system tray for the Ollama icon and right-click to quit.',
     },
   ],
 };
 
-function CopyButton({ text, className = '' }: { text: string; className?: string }) {
+function CopyButton({
+  text,
+  className = '',
+}: {
+  text: string;
+  className?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -94,12 +105,12 @@ function CopyButton({ text, className = '' }: { text: string; className?: string
       await navigator.clipboard.writeText(text);
       setCopied(true);
       logger.log('OllamaInstructions: Copied command to clipboard');
-      
+
       // Reset after 2 seconds
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       logger.error('OllamaInstructions: Failed to copy to clipboard:', error);
-      
+
       // Fallback: select text for manual copy
       const textArea = document.createElement('textarea');
       textArea.value = text;
@@ -219,7 +230,7 @@ export function OllamaInstructionsModal({
                   </span>
                   {step.title}
                 </h3>
-                
+
                 <p className="text-sm text-gruv-medium ml-8">
                   {step.description}
                 </p>
@@ -249,18 +260,20 @@ export function OllamaInstructionsModal({
                 ✅ Verification
               </h4>
               <p className="text-xs text-gruv-green-bright">
-                Once configured, try using a model in this extension. The banner will 
-                automatically disappear when Ollama connections work properly.
+                Once configured, try using a model in this extension. The banner
+                will automatically disappear when Ollama connections work
+                properly.
               </p>
             </div>
 
             <div className="mt-4 p-3 bg-gruv-orange-dim border border-gruv-orange rounded">
               <h4 className="text-sm font-semibold text-gruv-orange-bright mb-1">
-                ⚠️ Security Note  
+                ⚠️ Security Note
               </h4>
               <p className="text-xs text-gruv-orange-bright">
-                Setting OLLAMA_ORIGINS="*" allows any website to access your local Ollama service. 
-                For better security, you can set it to "app-extension://*" instead.
+                Setting OLLAMA_ORIGINS="*" allows any website to access your
+                local Ollama service. For better security, you can set it to
+                "app-extension://*" instead.
               </p>
             </div>
           </div>

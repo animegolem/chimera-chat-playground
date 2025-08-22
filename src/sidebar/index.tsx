@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+// Zod v4.0.17 handles CSP gracefully without intervention
 import App from './App';
 import './styles/globals.css';
 

@@ -10,6 +10,7 @@ import { ModelInfoSchema, ChatSessionSchema } from './models';
 // Storage keys as const for type safety
 export const STORAGE_KEYS = {
   MODELS: 'firefox-bootstrap-models',
+  MODELS_V2: 'firefox-bootstrap-models-v2',
   SESSIONS: 'firefox-bootstrap-sessions',
   CURRENT_SESSION_ID: 'firefox-bootstrap-current-session',
   PREFERENCES: 'firefox-bootstrap-preferences',
@@ -33,6 +34,7 @@ export const UserPreferencesSchema = z.object({
 // Storage data schema - what we save to browser.storage.local
 export const StorageDataSchema = z.object({
   [STORAGE_KEYS.MODELS]: z.array(ModelInfoSchema).optional(),
+  [STORAGE_KEYS.MODELS_V2]: z.any().optional(), // ModelStorage from types-v2.ts
   [STORAGE_KEYS.SESSIONS]: z.array(ChatSessionSchema).optional(),
   [STORAGE_KEYS.CURRENT_SESSION_ID]: z.string().optional(),
   [STORAGE_KEYS.PREFERENCES]: UserPreferencesSchema.optional(),
@@ -48,37 +50,51 @@ export function validateStoredModels(data: unknown) {
   try {
     // Handle undefined/null as empty array
     if (!data) return [];
-    
+
     // Try to parse with strict validation first
     return z.array(ModelInfoSchema).parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Migration: try to fix invalid models instead of throwing
-      logger.warn('Found invalid models in storage, attempting migration:', error.issues);
-      
+      logger.warn(
+        'Found invalid models in storage, attempting migration:',
+        error.issues
+      );
+
       if (Array.isArray(data)) {
-        const migratedModels = data.map((model: Record<string, unknown>) => {
-          if (typeof model === 'object' && model !== null) {
-            // Migrate old model format to new schema
-            return {
-              id: model.id || 'unknown',
-              name: model.name || model.id || 'Unknown Model',
-              emoji: model.emoji || '🤖',
-              color: model.color || '#8ec07c', // Default gruvbox green
-              type: model.type || 'local',
-              active: Boolean(model.active),
-              settings: {
-                temperature: (model.settings as Record<string, unknown>)?.temperature as number ?? 0.7,
-                systemPrompt: (model.settings as Record<string, unknown>)?.systemPrompt as string ?? 'You are a helpful AI assistant.',
-                endpoint: (model.settings as Record<string, unknown>)?.endpoint as string ?? 'http://localhost:11434',
-                maxTokens: (model.settings as Record<string, unknown>)?.maxTokens as number ?? 2048,
-              },
-              provider: model.provider || 'ollama',
-            };
-          }
-          return null;
-        }).filter(Boolean);
-        
+        const migratedModels = data
+          .map((model: Record<string, unknown>) => {
+            if (typeof model === 'object' && model !== null) {
+              // Migrate old model format to new schema
+              return {
+                id: model.id || 'unknown',
+                name: model.name || model.id || 'Unknown Model',
+                emoji: model.emoji || '🤖',
+                color: model.color || '#8ec07c', // Default gruvbox green
+                type: model.type || 'local',
+                active: Boolean(model.active),
+                settings: {
+                  temperature:
+                    ((model.settings as Record<string, unknown>)
+                      ?.temperature as number) ?? 0.7,
+                  systemPrompt:
+                    ((model.settings as Record<string, unknown>)
+                      ?.systemPrompt as string) ??
+                    'You are a helpful AI assistant.',
+                  endpoint:
+                    ((model.settings as Record<string, unknown>)
+                      ?.endpoint as string) ?? 'http://localhost:11434',
+                  maxTokens:
+                    ((model.settings as Record<string, unknown>)
+                      ?.maxTokens as number) ?? 2048,
+                },
+                provider: model.provider || 'ollama',
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+
         // Validate the migrated models
         try {
           return z.array(ModelInfoSchema).parse(migratedModels);
@@ -87,7 +103,7 @@ export function validateStoredModels(data: unknown) {
           return []; // Return empty array if migration fails
         }
       }
-      
+
       // If it's not an array or migration fails, return empty array
       logger.warn('Could not migrate invalid models, returning empty array');
       return [];
@@ -139,12 +155,19 @@ export async function safeStorageGet<K extends StorageKey>(
     case STORAGE_KEYS.MODELS: {
       const validatedModels = validateStoredModels(value);
       // If migration occurred (original data was invalid), save the migrated data
-      if (value && Array.isArray(value) && JSON.stringify(value) !== JSON.stringify(validatedModels)) {
+      if (
+        value &&
+        Array.isArray(value) &&
+        JSON.stringify(value) !== JSON.stringify(validatedModels)
+      ) {
         logger.info('Storage migration occurred, saving migrated models');
         await browser.storage.local.set({ [key]: validatedModels });
       }
       return validatedModels as StorageData[K];
     }
+    case STORAGE_KEYS.MODELS_V2:
+      // For now, just return as-is. Full validation handled by types-v2.ts
+      return (value || null) as StorageData[K];
     case STORAGE_KEYS.SESSIONS:
       return validateStoredSessions(value) as StorageData[K];
     case STORAGE_KEYS.CURRENT_SESSION_ID:
@@ -165,6 +188,9 @@ export async function safeStorageSet<K extends StorageKey>(
   switch (key) {
     case STORAGE_KEYS.MODELS:
       validateStoredModels(value);
+      break;
+    case STORAGE_KEYS.MODELS_V2:
+      // Validation handled by types-v2.ts validateModelStorage
       break;
     case STORAGE_KEYS.SESSIONS:
       validateStoredSessions(value);

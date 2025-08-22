@@ -17,13 +17,19 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
   const { actions } = useApp();
   const [settingsModal, setSettingsModal] = useState<ModelInfo | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [constraintWarning, setConstraintWarning] = useState<string | null>(null);
+  const [constraintWarning, setConstraintWarning] = useState<string | null>(
+    null
+  );
 
-  // Only show active models, sorted alphabetically  
+  // Show all models, sorted by active first, then alphabetically
   const activeModels = models
     .filter((m) => m.active)
     .sort((a, b) => a.name.localeCompare(b.name));
-  
+    
+  const inactiveModels = models
+    .filter((m) => !m.active)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   const canAddMore = activeModels.length < MAX_ACTIVE_MODELS;
 
   logger.log(
@@ -43,7 +49,7 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
     if (!model.active && activeModels.length >= MAX_ACTIVE_MODELS) {
       const warning = `Maximum ${MAX_ACTIVE_MODELS} models can be active at once. Remove another model first.`;
       setConstraintWarning(warning);
-      
+
       // Clear warning after 3 seconds
       setTimeout(() => setConstraintWarning(null), 3000);
       return;
@@ -51,7 +57,7 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
 
     // Clear any existing warning
     setConstraintWarning(null);
-    
+
     // Proceed with toggle
     await actions.toggleModel(modelId);
   };
@@ -66,8 +72,9 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
   return (
     <>
       <div className={`${className}`}>
-        {/* Active models only: (default-model) (+) layout */}
+        {/* Active and inactive models */}
         <div className="flex gap-2 flex-wrap items-center">
+          {/* Active models first */}
           {activeModels.map((model) => (
             <ModelPill
               key={model.id}
@@ -78,17 +85,27 @@ export function ModelPills({ models, className = '' }: ModelPillsProps) {
               showRemove={activeModels.length > 1}
             />
           ))}
-          
+
+          {/* Inactive models - greyed out */}
+          {inactiveModels.map((model) => (
+            <ModelPill
+              key={model.id}
+              model={model}
+              isActive={false}
+              onToggle={() => handleToggle(model.id)}
+              onRightClick={() => setSettingsModal(model)}
+              showRemove={false}
+            />
+          ))}
+
           {/* Add button - always show if under 3 model limit */}
           {canAddMore && <AddButton onClick={handleAddModel} />}
         </div>
-        
+
         {/* No active models - show message with add button */}
         {activeModels.length === 0 && (
           <div className="flex items-center gap-2">
-            <div className="text-xs text-gruv-medium">
-              No models active
-            </div>
+            <div className="text-xs text-gruv-medium">No models active</div>
             <AddButton onClick={handleAddModel} />
           </div>
         )}
@@ -130,24 +147,33 @@ interface ModelPillProps {
   showRemove?: boolean;
 }
 
-function ModelPill({ model, isActive, onToggle, onRightClick, showRemove = false }: ModelPillProps) {
+function ModelPill({
+  model,
+  isActive,
+  onToggle,
+  onRightClick,
+  showRemove = false,
+}: ModelPillProps) {
   return (
     <div className="flex items-center gap-1">
       <button
+        onClick={onToggle}
         onContextMenu={(e) => {
           e.preventDefault();
           onRightClick();
         }}
-        className="px-3 py-1 rounded-full text-xs flex items-center gap-1 transition-all hover:scale-105 bg-opacity-30 border border-solid"
+        className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 transition-all hover:scale-105 border border-solid ${
+          isActive ? 'bg-opacity-30' : 'bg-opacity-10 opacity-50'
+        }`}
         style={{
-          backgroundColor: model.color + '30',
-          borderColor: model.color,
-          color: model.color,
+          backgroundColor: model.color + (isActive ? '30' : '10'),
+          borderColor: model.color + (isActive ? '' : '80'),
+          color: isActive ? model.color : model.color + '80',
         }}
-        title={`${model.name} (${model.type}) - Right-click for settings`}
+        title={`${model.name} (${model.type}) - ${isActive ? 'Active' : 'Inactive'} - Left-click to toggle, Right-click for settings`}
       >
         <span>{model.emoji}</span>
-        <span>{model.name}</span>
+        <span>{model.baseModelId || model.id}</span>
         {model.type === 'api' && !model.settings?.apiKey && (
           <span className="text-gruv-red-bright text-xs">⚠</span>
         )}

@@ -98,7 +98,7 @@ browser.runtime.onMessage.addListener(
     if (FEATURE_FLAGS.DEBUG_MESSAGES) {
       logger.log(
         'Background received message:',
-(message as { type?: string })?.type || 'unknown',
+        (message as { type?: string })?.type || 'unknown',
         message
       );
     }

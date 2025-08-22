@@ -21,6 +21,7 @@ interface AppContextType {
   actions: {
     toggleModel: ReturnType<typeof useAppHook>['toggleModel'];
     updateModel: ReturnType<typeof useAppHook>['updateModel'];
+    addModel: ReturnType<typeof useAppHook>['addModel'];
     sendMessage: ReturnType<typeof useAppHook>['sendMessage'];
     deleteMessage: ReturnType<typeof useAppHook>['deleteMessage'];
     updateMessage: ReturnType<typeof useAppHook>['updateMessage'];
@@ -64,6 +65,7 @@ export function AppProvider({ children }: AppProviderProps) {
     actions: {
       toggleModel: appState.toggleModel,
       updateModel: appState.updateModel,
+      addModel: appState.addModel,
       sendMessage: appState.sendMessage,
       deleteMessage: appState.deleteMessage,
       updateMessage: appState.updateMessage,

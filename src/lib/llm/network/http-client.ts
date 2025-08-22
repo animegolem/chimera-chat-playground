@@ -122,9 +122,9 @@ export class HttpClient {
     options: RequestInit & { providerId?: string } = {}
   ): Promise<T> {
     const { providerId = 'http-client', ...fetchOptions } = options;
-    
+
     const controller = createTimeoutController(this.timeoutMs);
-    
+
     const requestOptions: RequestInit = {
       ...fetchOptions,
       headers: {
@@ -136,16 +136,18 @@ export class HttpClient {
 
     try {
       const response = await fetch(url, requestOptions);
-      
+
       if (!response.ok) {
         throw new LLMError(
           `HTTP ${response.status}: ${response.statusText}`,
-          response.status >= 500 ? LLMErrorCode.CONNECTION_FAILED : LLMErrorCode.UNKNOWN,
+          response.status >= 500
+            ? LLMErrorCode.CONNECTION_FAILED
+            : LLMErrorCode.UNKNOWN,
           providerId
         );
       }
 
-      return await response.json() as T;
+      return (await response.json()) as T;
     } catch (error) {
       if (error instanceof LLMError) {
         throw error;
@@ -169,7 +171,7 @@ export class HttpClient {
     options: RequestInit & { providerId?: string } = {}
   ): AsyncIterableIterator<string> {
     const { providerId = 'http-client', ...fetchOptions } = options;
-    
+
     const requestOptions: RequestInit = {
       ...fetchOptions,
       headers: {

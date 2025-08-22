@@ -118,7 +118,10 @@ export class ProviderRegistry {
    * Get the fallback provider
    */
   getFallbackProvider(): LLMProvider | null {
-    if (!this.fallbackProviderId || !this.providers.has(this.fallbackProviderId)) {
+    if (
+      !this.fallbackProviderId ||
+      !this.providers.has(this.fallbackProviderId)
+    ) {
       return null;
     }
 

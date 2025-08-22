@@ -71,6 +71,6 @@ export function parseJSONL<T = Record<string, unknown>>(data: string): T[] {
 export function parseChunkedText(data: string): string[] {
   return data
     .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
 }

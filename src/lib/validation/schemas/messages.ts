@@ -98,6 +98,7 @@ export const SidebarMessageSchema = z.object({
     'LLM_CHAT_REQUEST',
     'UPDATE_MODEL_SETTINGS',
     'TOGGLE_MODEL',
+    'ADD_MODEL',
     'DISCOVER_OLLAMA_MODELS',
   ]),
   groupId: z.number().optional(),
@@ -111,6 +112,7 @@ export const SidebarMessageSchema = z.object({
   llmRequest: LLMRequestSchema.optional(),
   modelId: z.string().optional(),
   modelSettings: ModelInfoSchema.partial().optional(),
+  modelData: ModelInfoSchema.optional(), // For ADD_MODEL
 });
 
 // Response messages

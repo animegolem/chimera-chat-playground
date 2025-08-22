@@ -112,7 +112,9 @@ export class RetryHandler {
     return retryOperation(operation, this.options);
   }
 
-  async executeStream<T>(operation: () => AsyncIterableIterator<T>): Promise<AsyncIterableIterator<T>> {
+  async executeStream<T>(
+    operation: () => AsyncIterableIterator<T>
+  ): Promise<AsyncIterableIterator<T>> {
     return retryStream(operation, this.options);
   }
 

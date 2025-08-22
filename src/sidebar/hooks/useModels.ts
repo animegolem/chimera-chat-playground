@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ModelInfo } from '@/shared/types';
+import { ModelStorage } from '@/shared/types-v2';
 import { DEFAULT_MODELS } from '@/shared/constants';
 import { storage } from '@/lib/storage';
 import { ModelDiscoveryService } from '@/lib/model-discovery';
@@ -13,6 +14,7 @@ interface UseModelsReturn {
   error: string | null;
   toggleModel: (modelId: string) => Promise<void>;
   updateModel: (modelId: string, updates: Partial<ModelInfo>) => Promise<void>;
+  addModel: (modelData: ModelInfo) => Promise<void>;
   discoverModels: () => Promise<void>;
   getActiveModels: () => ModelInfo[];
   getModelById: (id: string) => ModelInfo | undefined;
@@ -24,6 +26,27 @@ export function useModels(): UseModelsReturn {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load models from new separated storage, fallback to legacy format for backward compatibility
+  const loadModels = useCallback(async (): Promise<ModelInfo[]> => {
+    try {
+      // Try new separated storage first
+      const modelStorage = await storage.getModelStorage();
+      if (
+        modelStorage.configured.length > 0 ||
+        modelStorage.active.length > 0
+      ) {
+        // Combine configured and active models into legacy format for backward compatibility
+        return [...modelStorage.configured, ...modelStorage.active];
+      }
+
+      // Fallback to legacy storage
+      return await storage.getModels();
+    } catch (error) {
+      logger.error('Failed to load models:', error);
+      return await storage.getModels(); // Always fallback to legacy
+    }
+  }, []);
 
   // Derived state
   const activeModelIds = models.filter((m) => m.active).map((m) => m.id);
@@ -125,8 +148,20 @@ export function useModels(): UseModelsReturn {
         setLoading(true);
         setError(null);
 
-        const discoveredModels = await discoverAndSyncModels();
-        setModels(discoveredModels);
+        // First try to load existing models from storage
+        const existingModels = await loadModels();
+        if (existingModels.length > 0) {
+          setModels(existingModels);
+          logger.log(
+            'useModels: Loaded',
+            existingModels.length,
+            'existing models'
+          );
+        } else {
+          // If no models exist, discover new ones
+          const discoveredModels = await discoverAndSyncModels();
+          setModels(discoveredModels);
+        }
       } catch (err) {
         const errorMessage = 'Failed to initialize models';
         logger.error('useModels:', errorMessage, err);
@@ -137,7 +172,7 @@ export function useModels(): UseModelsReturn {
     };
 
     initializeModels();
-  }, [discoverAndSyncModels]);
+  }, [loadModels, discoverAndSyncModels]);
 
   // Toggle model active state
   const toggleModel = useCallback(async (modelId: string) => {
@@ -154,14 +189,12 @@ export function useModels(): UseModelsReturn {
       }
 
       if (response.success) {
-        logger.log('useModels: Toggle successful, reloading models');
+        logger.log('useModels: Toggle successful, reloading models from separated storage');
 
-        // Reload models from storage
-        const result = await browser.storage.local.get(
-          'firefox-bootstrap-models'
-        );
-        const updatedModels = result['firefox-bootstrap-models'] || [];
+        // Reload models using the loadModels function that handles separated storage
+        const updatedModels = await loadModels();
         setModels(updatedModels);
+        logger.log('useModels: Reloaded', updatedModels.length, 'models after toggle');
       } else {
         throw new Error(response.error || 'Unknown error');
       }
@@ -170,39 +203,83 @@ export function useModels(): UseModelsReturn {
       logger.error('useModels:', errorMessage, err);
       setError(errorMessage);
     }
-  }, []);
+  }, [loadModels]);
 
   // Update model settings
   const updateModel = useCallback(
     async (modelId: string, updates: Partial<ModelInfo>) => {
       try {
-        const response = await browser.runtime.sendMessage({
+        logger.log('useModels: updateModel called with:', { modelId, updates });
+
+        const message = {
           type: 'UPDATE_MODEL_SETTINGS',
           modelId,
           modelSettings: updates,
-        });
+        };
+
+        logger.log('useModels: Sending message to background:', message);
+        const response = await browser.runtime.sendMessage(message);
+
+        logger.log('useModels: Received response from background:', response);
 
         if (!response) {
+          logger.error('useModels: No response from background script');
           throw new Error('No response from background script');
         }
 
         if (response.success) {
-          // Reload models from storage
-          const result = await browser.storage.local.get(
-            'firefox-bootstrap-models'
+          logger.log(
+            'useModels: Background update successful, reloading models from separated storage'
           );
-          const updatedModels = result['firefox-bootstrap-models'] || [];
+          // Reload models using the loadModels function that handles separated storage
+          const updatedModels = await loadModels();
+          logger.log(
+            'useModels: Loaded updated models from storage:',
+            updatedModels.length
+          );
           setModels(updatedModels);
+          logger.log('useModels: updateModel completed successfully');
         } else {
+          logger.error('useModels: Background update failed:', response.error);
           throw new Error(response.error || 'Unknown error');
         }
       } catch (err) {
         const errorMessage = 'Failed to update model';
-        logger.error('useModels:', errorMessage, err);
+        logger.error('useModels: updateModel error:', errorMessage, err);
+        console.error('useModels: updateModel error:', errorMessage, err);
         setError(errorMessage);
+        throw err; // Re-throw so modal can show specific error
       }
     },
-    []
+    [loadModels]
+  );
+
+  // Add model function
+  const addModel = useCallback(
+    async (modelData: ModelInfo) => {
+      try {
+        logger.log('useModels: Adding model:', modelData);
+
+        const response = await browser.runtime.sendMessage({
+          type: 'ADD_MODEL',
+          modelData,
+        });
+
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to add model');
+        }
+
+        // Refresh models after successful add
+        const updatedModels = await discoverAndSyncModels();
+        setModels(updatedModels);
+      } catch (err) {
+        const errorMessage = 'Failed to add model';
+        logger.error('useModels:', errorMessage, err);
+        setError(errorMessage);
+        throw err; // Re-throw for UI handling
+      }
+    },
+    [discoverAndSyncModels]
   );
 
   // Manual discovery trigger
@@ -229,6 +306,7 @@ export function useModels(): UseModelsReturn {
     error,
     toggleModel,
     updateModel,
+    addModel,
     discoverModels,
     getActiveModels,
     getModelById,

@@ -17,7 +17,8 @@ export const ModelSettingsSchema = z.object({
 
 // Model info schema
 export const ModelInfoSchema = z.object({
-  id: z.string(),
+  id: z.string(), // Unique hashed ID for storage (e.g., 'gemma3:4b:abc123')
+  baseModelId: z.string().optional(), // Original model ID for API calls (e.g., 'gemma3:4b')
   name: z.string(),
   emoji: z.string(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/), // Hex color validation

@@ -65,7 +65,7 @@ export function useChat(models: ModelInfo[]): UseChatReturn {
           updatedAt: Date.now(),
         };
         setCurrentSession(updatedSession);
-        
+
         // Save session with user message immediately so it persists during loading
         await storage.saveSession(updatedSession);
 

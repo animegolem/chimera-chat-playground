@@ -178,7 +178,8 @@ export class ModelDiscoveryService {
       : modelName;
 
     return {
-      id: modelName, // Keep full name with tag as ID
+      id: modelName, // Inactive models keep original ID
+      baseModelId: modelName, // Store base model ID for reference
       name:
         existingConfig?.name ||
         displayName.charAt(0).toUpperCase() + displayName.slice(1),
@@ -207,10 +208,12 @@ export class ModelDiscoveryService {
     discoveredModels: OllamaModel[],
     existingModels: ModelInfo[]
   ): ModelInfo[] {
-    // Create a map of existing configurations by model ID
+    // Create a map of existing configurations by base model ID (not hashed ID)
     const existingConfigMap = new Map<string, ModelInfo>();
     existingModels.forEach((model) => {
-      existingConfigMap.set(model.id, model);
+      // Use baseModelId for mapping, fallback to id for backward compatibility
+      const baseId = model.baseModelId || model.id;
+      existingConfigMap.set(baseId, model);
     });
 
     // Convert discovered models to ModelInfo with preserved user config
@@ -223,8 +226,9 @@ export class ModelDiscoveryService {
     existingModels.forEach((existingModel) => {
       if (existingModel.type !== 'local') {
         // Keep API models that aren't from Ollama
+        const baseId = existingModel.baseModelId || existingModel.id;
         const notFound = !discoveredModels.some(
-          (discovered) => discovered.name === existingModel.id
+          (discovered) => discovered.name === baseId
         );
         if (notFound) {
           syncedModels.push(existingModel);

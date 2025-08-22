@@ -64,6 +64,7 @@ export interface SidebarMessage {
     | 'LLM_CHAT_REQUEST'
     | 'UPDATE_MODEL_SETTINGS'
     | 'TOGGLE_MODEL'
+    | 'ADD_MODEL'
     | 'DISCOVER_OLLAMA_MODELS';
 
   // Tab management
@@ -95,6 +96,7 @@ export interface SidebarMessage {
   // Model management
   modelId?: string;
   modelSettings?: Partial<ModelInfo>;
+  modelData?: ModelInfo; // For ADD_MODEL: complete model object
 }
 
 // Response messages

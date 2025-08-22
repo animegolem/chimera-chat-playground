@@ -9,7 +9,8 @@ import { OllamaModelResponse } from './types';
 export function extractContextLength(parameterSize: string): number {
   if (parameterSize.includes('7B')) return 4096;
   if (parameterSize.includes('13B')) return 4096;
-  if (parameterSize.includes('30B') || parameterSize.includes('34B')) return 8192;
+  if (parameterSize.includes('30B') || parameterSize.includes('34B'))
+    return 8192;
   if (parameterSize.includes('70B')) return 8192;
   return 2048; // Conservative default
 }
@@ -66,7 +67,7 @@ export function mapOllamaModelToModelInfo(
   baseUrl: string
 ): ModelInfo {
   const family = model.details.family || model.details.format;
-  
+
   return {
     id: model.name,
     name: model.name,

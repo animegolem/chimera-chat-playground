@@ -3,10 +3,10 @@ import { LLMError, LLMErrorCode } from '../../types';
 import { ModelInfo } from '@/shared/types';
 import { logger } from '@/lib/logger';
 import { streamFetch } from '../../utils/streaming';
-import { 
-  OllamaModelResponse, 
-  OlamaChatRequest, 
-  OlamaChatResponse 
+import {
+  OllamaModelResponse,
+  OlamaChatRequest,
+  OlamaChatResponse,
 } from './types';
 import { mapOllamaModelToModelInfo } from './utils';
 
@@ -47,7 +47,7 @@ export class OllamaClient {
 
       const data: OllamaModelResponse = await response.json();
 
-      return data.models.map((model) => 
+      return data.models.map((model) =>
         mapOllamaModelToModelInfo(model, this.baseUrl)
       );
     } catch (error) {
@@ -104,7 +104,10 @@ export class OllamaClient {
   /**
    * Create streaming chat request to Ollama
    */
-  async createChatStream(request: OlamaChatRequest, providerId: string): Promise<AsyncIterable<string>> {
+  async createChatStream(
+    request: OlamaChatRequest,
+    providerId: string
+  ): Promise<AsyncIterable<string>> {
     try {
       const streamRequest = { ...request, stream: true };
 
@@ -141,7 +144,11 @@ export class OllamaClient {
     try {
       return JSON.parse(chunk);
     } catch (parseError) {
-      logger.warn('Failed to parse Ollama streaming response:', chunk, parseError);
+      logger.warn(
+        'Failed to parse Ollama streaming response:',
+        chunk,
+        parseError
+      );
       return null;
     }
   }

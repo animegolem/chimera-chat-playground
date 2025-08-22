@@ -14,6 +14,7 @@ interface UseAppReturn {
   modelsError: string | null;
   toggleModel: ReturnType<typeof useModels>['toggleModel'];
   updateModel: ReturnType<typeof useModels>['updateModel'];
+  addModel: ReturnType<typeof useModels>['addModel'];
   discoverModels: ReturnType<typeof useModels>['discoverModels'];
   getActiveModels: ReturnType<typeof useModels>['getActiveModels'];
   getModelById: ReturnType<typeof useModels>['getModelById'];
@@ -87,6 +88,7 @@ export function useApp(): UseAppReturn {
     modelsError: models.error,
     toggleModel: models.toggleModel,
     updateModel: models.updateModel,
+    addModel: models.addModel,
     discoverModels: models.discoverModels,
     getActiveModels: models.getActiveModels,
     getModelById: models.getModelById,

@@ -54,22 +54,24 @@ export const OllamaChatRequestSchema = z.object({
 });
 
 // Chat response from Ollama
-export const OllamaChatResponseSchema = z.object({
-  model: z.string(),
-  created_at: z.string().optional(),
-  message: z.object({
-    role: z.enum(['assistant', 'user', 'system']), // More flexible role handling
-    content: z.string(),
-  }),
-  done: z.boolean().optional(),
-  done_reason: z.string().optional(), // Added done_reason field
-  total_duration: z.number().optional(),
-  load_duration: z.number().optional(),
-  prompt_eval_count: z.number().optional(),
-  prompt_eval_duration: z.number().optional(),
-  eval_count: z.number().optional(),
-  eval_duration: z.number().optional(),
-}).passthrough(); // Allow additional fields that we don't know about
+export const OllamaChatResponseSchema = z
+  .object({
+    model: z.string(),
+    created_at: z.string().optional(),
+    message: z.object({
+      role: z.enum(['assistant', 'user', 'system']), // More flexible role handling
+      content: z.string(),
+    }),
+    done: z.boolean().optional(),
+    done_reason: z.string().optional(), // Added done_reason field
+    total_duration: z.number().optional(),
+    load_duration: z.number().optional(),
+    prompt_eval_count: z.number().optional(),
+    prompt_eval_duration: z.number().optional(),
+    eval_count: z.number().optional(),
+    eval_duration: z.number().optional(),
+  })
+  .passthrough(); // Allow additional fields that we don't know about
 
 // Type exports
 export type OllamaModel = z.infer<typeof OllamaModelSchema>;

@@ -34,9 +34,7 @@ export class ExecutionService {
       if (this.config.enableFallback) {
         const fallbackProvider = this.registry.getFallbackProvider();
         if (fallbackProvider && fallbackProvider.id !== provider.id) {
-          logger.log(
-            `Attempting fallback to provider ${fallbackProvider.id}`
-          );
+          logger.log(`Attempting fallback to provider ${fallbackProvider.id}`);
 
           try {
             return await this.executeWithTimeout(
@@ -95,20 +93,20 @@ export class ExecutionService {
     maxRetries: number = this.config.retryAttempts || 3
   ): Promise<T> {
     let lastError: Error;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await this.executeWithFallback(operation, operationName);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        
+
         if (attempt < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
           logger.warn(
             `${operationName} attempt ${attempt} failed, retrying in ${delay}ms:`,
             error
           );
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }

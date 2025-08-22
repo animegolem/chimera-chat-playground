@@ -72,7 +72,7 @@ export function transformStreamChunks<T>(
  */
 export class StreamProcessor {
   private chunks: StreamChunk[] = [];
-  
+
   constructor(
     private processingOptions: {
       bufferSize?: number;
@@ -86,10 +86,10 @@ export class StreamProcessor {
    */
   addChunk(chunk: StreamChunk): StreamChunk[] {
     this.chunks.push(chunk);
-    
+
     // Apply filtering if enabled
     if (this.processingOptions.filterEmpty) {
-      this.chunks = this.chunks.filter(c => c.content.trim().length > 0);
+      this.chunks = this.chunks.filter((c) => c.content.trim().length > 0);
     }
 
     // Merge overlapping content if enabled
@@ -124,7 +124,10 @@ export class StreamProcessor {
   getBufferInfo(): { count: number; totalLength: number } {
     return {
       count: this.chunks.length,
-      totalLength: this.chunks.reduce((sum, chunk) => sum + chunk.content.length, 0)
+      totalLength: this.chunks.reduce(
+        (sum, chunk) => sum + chunk.content.length,
+        0
+      ),
     };
   }
 }

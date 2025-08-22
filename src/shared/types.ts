@@ -10,7 +10,8 @@ export interface Message {
 }
 
 export interface ModelInfo {
-  id: string;
+  id: string; // Unique hashed ID for storage (e.g., 'gemma3:4b:abc123')
+  baseModelId?: string; // Original model ID for API calls (e.g., 'gemma3:4b')
   name: string;
   emoji: string;
   color: string;

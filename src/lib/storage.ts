@@ -2,11 +2,18 @@
 
 import { STORAGE_KEYS } from '@/shared/constants';
 import { ChatSession, ModelInfo, AppState } from '@/shared/types';
+import {
+  ConfiguredModel,
+  ActiveModel,
+  ModelStorage,
+  validateModelStorage,
+} from '@/shared/types-v2';
 import { logger } from '@/lib/logger';
 
 interface StorageData {
   [STORAGE_KEYS.SESSIONS]: ChatSession[];
-  [STORAGE_KEYS.MODELS]: ModelInfo[];
+  [STORAGE_KEYS.MODELS]: ModelInfo[]; // Legacy format
+  [STORAGE_KEYS.MODELS_V2]: ModelStorage; // New separated format
   [STORAGE_KEYS.SETTINGS]: Partial<AppState>;
   [STORAGE_KEYS.API_KEYS]: Record<string, string>;
   [STORAGE_KEYS.CURRENT_SESSION]: string | null;
@@ -81,6 +88,7 @@ class Storage {
     await this.set(STORAGE_KEYS.SESSIONS, filtered);
   }
 
+  // Legacy methods for backward compatibility
   async getModels(): Promise<ModelInfo[]> {
     const models = await this.get(STORAGE_KEYS.MODELS);
     return models || [];
@@ -88,6 +96,47 @@ class Storage {
 
   async saveModels(models: ModelInfo[]): Promise<void> {
     await this.set(STORAGE_KEYS.MODELS, models);
+  }
+
+  // New separated model storage methods
+  async getModelStorage(): Promise<ModelStorage> {
+    const modelStorage = await this.get(STORAGE_KEYS.MODELS_V2);
+    if (modelStorage) {
+      try {
+        return validateModelStorage(modelStorage);
+      } catch (error) {
+        logger.error(
+          'Invalid model storage format, falling back to empty:',
+          error
+        );
+        return { configured: [], active: [] };
+      }
+    }
+    return { configured: [], active: [] };
+  }
+
+  async saveModelStorage(modelStorage: ModelStorage): Promise<void> {
+    // Validate before saving
+    const validated = validateModelStorage(modelStorage);
+    await this.set(STORAGE_KEYS.MODELS_V2, validated);
+  }
+
+  async getConfiguredModels(): Promise<ConfiguredModel[]> {
+    const storage = await this.getModelStorage();
+    return storage.configured;
+  }
+
+  async getActiveModels(): Promise<ActiveModel[]> {
+    const storage = await this.getModelStorage();
+    return storage.active;
+  }
+
+  async updateModelStorage(
+    updater: (storage: ModelStorage) => ModelStorage
+  ): Promise<void> {
+    const current = await this.getModelStorage();
+    const updated = updater(current);
+    await this.saveModelStorage(updated);
   }
 
   async updateModel(

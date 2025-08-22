@@ -32,7 +32,9 @@ export class OllamaProvider extends LLMProvider {
     try {
       // Test connection by fetching available models
       await this.fetchAvailableModels();
-      logger.log(`Ollama provider initialized at ${(this.config as OllamaConfig).baseUrl}`);
+      logger.log(
+        `Ollama provider initialized at ${(this.config as OllamaConfig).baseUrl}`
+      );
     } catch (error) {
       throw this.createError(
         `Failed to initialize Ollama provider: ${error instanceof Error ? error.message : 'Unknown error'}`,

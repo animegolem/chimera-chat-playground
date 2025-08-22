@@ -35,7 +35,8 @@ export const DEFAULT_MODELS = {
 // Storage keys
 export const STORAGE_KEYS = {
   SESSIONS: 'firefox-bootstrap-sessions',
-  MODELS: 'firefox-bootstrap-models',
+  MODELS: 'firefox-bootstrap-models', // Legacy ModelInfo array
+  MODELS_V2: 'firefox-bootstrap-models-v2', // New separated format
   SETTINGS: 'firefox-bootstrap-settings',
   API_KEYS: 'firefox-bootstrap-api-keys',
   CURRENT_SESSION: 'firefox-bootstrap-current-session',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ModelInfo } from '@/shared/types';
 import { useApp } from '@/sidebar/contexts/AppContext';
 import { logger } from '@/lib/logger';
@@ -14,15 +14,20 @@ export function ModelSettingsModal({
   isOpen,
   onClose,
 }: ModelSettingsModalProps) {
-  const { actions } = useApp();
+  const { actions, state } = useApp();
+  const existingModels = state.models;
   const isAddMode = model === null;
-  
+
   // Initialize state based on mode
   const [displayName, setDisplayName] = useState(model?.name || 'New Model');
   const [emoji, setEmoji] = useState(model?.emoji || '🤖');
   const [color, setColor] = useState(model?.color || '#8ec07c');
   const [provider, setProvider] = useState(model?.provider || 'ollama');
   const [modelId, setModelId] = useState(model?.id || '');
+  const [availableModels, setAvailableModels] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
   const [settings, setSettings] = useState(
     model?.settings || {
       temperature: 0.7,
@@ -32,12 +37,106 @@ export function ModelSettingsModal({
     }
   );
 
+  const discoverAvailableModels = useCallback(async () => {
+    try {
+      setDiscoveryLoading(true);
+      logger.log('ModelSettingsModal: Discovering available models...');
+
+      const response = await browser.runtime.sendMessage({
+        type: 'DISCOVER_OLLAMA_MODELS',
+      });
+
+      logger.log('ModelSettingsModal: Discovery response:', response);
+
+      if (response && response.success && response.models) {
+        let models = response.models.map((m: any) => ({
+          id: m.id || m.name,
+          name: m.name || m.id,
+        }));
+
+        // Enhanced filtering for new type system
+        if (isAddMode) {
+          // In add mode, show:
+          // 1. Discovered models that aren't already configured or active
+          // 2. Inactive configured models (can be reactivated)
+
+          // Get base model IDs of all existing models (both active and inactive)
+          const existingBaseModelIds = new Set(
+            existingModels.map((m) => m.baseModelId || m.id)
+          );
+
+          // Filter out models that are already configured in some way
+          const discoveredAvailable = models.filter(
+            (m) => !existingBaseModelIds.has(m.id)
+          );
+
+          // Also include inactive configured models (can be reactivated)
+          const inactiveConfigured = existingModels
+            .filter((m) => m.active === false)
+            .map((m) => ({
+              id: m.id, // Use original ID, not hashed
+              name: m.name, // No need for (configured) suffix with separated types
+            }));
+
+          // Combine discovered + inactive configured
+          models = [...discoveredAvailable, ...inactiveConfigured];
+
+          logger.log('ModelSettingsModal: Add mode - available models:', {
+            discovered: discoveredAvailable.length,
+            inactiveConfigured: inactiveConfigured.length,
+            total: models.length,
+          });
+        } else {
+          // In edit mode, show all models except those that would cause conflicts
+          const conflictingBaseModelIds = existingModels
+            .filter((m) => m.id !== model?.id && m.active === true) // Exclude current model being edited
+            .map((m) => m.baseModelId || m.id);
+          models = models.filter(
+            (m) => !conflictingBaseModelIds.includes(m.id)
+          );
+          logger.log(
+            'ModelSettingsModal: Edit mode - filtered out conflicting active models, available:',
+            models.length
+          );
+        }
+
+        setAvailableModels(models);
+        logger.log('ModelSettingsModal: Available models:', models.length);
+      } else {
+        logger.error(
+          'ModelSettingsModal: Failed to discover models:',
+          response?.error
+        );
+      }
+    } catch (error) {
+      logger.error('ModelSettingsModal: Error discovering models:', error);
+    } finally {
+      setDiscoveryLoading(false);
+    }
+  }, []);
+
+  // Discover available models when modal opens for any Ollama provider
+  useEffect(() => {
+    if (isOpen && provider === 'ollama') {
+      discoverAvailableModels();
+    }
+  }, [isOpen, provider, discoverAvailableModels]);
+
+  // Handle model selection from dropdown
+  const handleModelSelect = (selectedId: string) => {
+    setModelId(selectedId);
+    const selectedModel = availableModels.find((m) => m.id === selectedId);
+    if (selectedModel) {
+      setDisplayName(selectedModel.name);
+    }
+  };
+
   if (!isOpen) return null;
 
   // Predefined color options
   const colorOptions = [
     '#8ec07c', // gruvbox green
-    '#83a598', // gruvbox blue  
+    '#83a598', // gruvbox blue
     '#b8bb26', // gruvbox yellow
     '#d3869b', // gruvbox purple
     '#fe8019', // gruvbox orange
@@ -46,22 +145,98 @@ export function ModelSettingsModal({
 
   const handleSave = async () => {
     try {
+      logger.log(
+        'ModelSettingsModal: handleSave called, isAddMode:',
+        isAddMode
+      );
+
       if (isAddMode) {
-        // TODO: Implement addModel action when we add multi-provider support
-        logger.log('Add new model:', { displayName, emoji, color, provider, modelId, settings });
-        // For now, just close the modal
+        // Validate required fields
+        if (!modelId.trim()) {
+          logger.error('ModelSettingsModal: Model ID is required');
+          alert('Model ID is required. Please select or enter a model ID.');
+          return;
+        }
+
+        if (!displayName.trim()) {
+          logger.error('ModelSettingsModal: Display name is required');
+          alert('Display name is required.');
+          return;
+        }
+
+        // Create new model with provider-based ID and data model alignment
+        const newModel: ModelInfo = {
+          id: modelId.trim(),
+          name: displayName.trim(),
+          emoji,
+          color,
+          type: provider === 'ollama' ? 'local' : 'api',
+          active: true, // New models start as active
+          provider,
+          settings,
+        };
+
+        logger.log('ModelSettingsModal: Adding new model:', newModel);
+        console.log('ModelSettingsModal: Adding new model:', newModel);
+
+        await actions.addModel(newModel);
+
+        logger.log('ModelSettingsModal: addModel completed successfully');
+        console.log('ModelSettingsModal: addModel completed successfully');
         onClose();
       } else {
-        await actions.updateModel(model.id, {
+        // Validate required fields for edit mode
+        if (!modelId.trim()) {
+          logger.error('ModelSettingsModal: Model ID is required');
+          alert('Model ID is required. Please select a model ID.');
+          return;
+        }
+
+        if (!displayName.trim()) {
+          logger.error('ModelSettingsModal: Display name is required');
+          alert('Display name is required.');
+          return;
+        }
+
+        logger.log('ModelSettingsModal: Updating existing model:', model?.id);
+        console.log('ModelSettingsModal: Updating existing model:', model?.id);
+        logger.log(
+          'ModelSettingsModal: Old model ID:',
+          model?.id,
+          '→ New model ID:',
+          modelId.trim()
+        );
+        console.log(
+          'ModelSettingsModal: Old model ID:',
+          model?.id,
+          '→ New model ID:',
+          modelId.trim()
+        );
+
+        const updateData = {
+          id: modelId.trim(), // Include the updated model ID
           name: displayName,
           emoji,
           color,
+          provider,
           settings,
-        });
+        };
+
+        logger.log('ModelSettingsModal: Update payload:', updateData);
+        console.log('ModelSettingsModal: Update payload:', updateData);
+
+        await actions.updateModel(model.id, updateData);
+
+        logger.log('ModelSettingsModal: updateModel completed successfully');
+        console.log('ModelSettingsModal: updateModel completed successfully');
         onClose();
       }
     } catch (error) {
-      logger.error('Failed to save model:', error);
+      logger.error('ModelSettingsModal: Failed to save model:', error);
+      console.error('ModelSettingsModal: Failed to save model:', error);
+      alert(
+        `Failed to save model: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -111,7 +286,9 @@ export function ModelSettingsModal({
                   {isAddMode ? 'Add New Model' : `Settings: ${displayName}`}
                 </h2>
                 <p className="text-sm text-gruv-medium">
-                  {isAddMode ? 'Configure your model' : `${model?.type || 'unknown'} model`}
+                  {isAddMode
+                    ? 'Configure your model'
+                    : `${model?.type || 'unknown'} model`}
                 </p>
               </div>
             </div>
@@ -150,7 +327,9 @@ export function ModelSettingsModal({
                     key={colorOption}
                     onClick={() => setColor(colorOption)}
                     className={`w-8 h-8 rounded border-2 transition-all ${
-                      color === colorOption ? 'border-gruv-light scale-110' : 'border-gruv-medium'
+                      color === colorOption
+                        ? 'border-gruv-light scale-110'
+                        : 'border-gruv-medium'
                     }`}
                     style={{ backgroundColor: colorOption }}
                     title={colorOption}
@@ -182,42 +361,95 @@ export function ModelSettingsModal({
               />
             </div>
 
-            {isAddMode && (
-              <>
-                {/* Provider */}
-                <div>
-                  <label className="block text-sm font-medium text-gruv-light mb-1">
-                    Provider
-                  </label>
-                  <select
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
-                  >
-                    <option value="ollama">Ollama (Local)</option>
-                    <option value="openrouter" disabled>OpenRouter (Coming Soon)</option>
-                    <option value="openai" disabled>OpenAI (Coming Soon)</option>
-                  </select>
-                </div>
+            {/* Provider - Always visible in unified UI */}
+            <div>
+              <label className="block text-sm font-medium text-gruv-light mb-1">
+                Provider
+              </label>
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
+              >
+                <option value="ollama">Ollama (Local)</option>
+                <option value="openrouter" disabled>
+                  OpenRouter (Coming Soon)
+                </option>
+                <option value="openai" disabled>
+                  OpenAI (Coming Soon)
+                </option>
+              </select>
+            </div>
 
-                {/* Model ID */}
-                <div>
-                  <label className="block text-sm font-medium text-gruv-light mb-1">
-                    Model ID
-                  </label>
+            {/* Model ID - Dropdown for Ollama, text input for other providers */}
+            <div>
+              <label className="block text-sm font-medium text-gruv-light mb-1">
+                Model ID
+                {provider === 'ollama' && discoveryLoading && (
+                  <span className="ml-2 text-xs text-gruv-blue-bright">
+                    Discovering...
+                  </span>
+                )}
+              </label>
+
+              {provider === 'ollama' ? (
+                // Dropdown for Ollama models (both add and edit modes)
+                <div className="space-y-2">
+                  {availableModels.length > 0 ? (
+                    <select
+                      value={modelId}
+                      onChange={(e) => handleModelSelect(e.target.value)}
+                      className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
+                    >
+                      <option value="">
+                        {isAddMode ? 'Select a model...' : 'Change model...'}
+                      </option>
+                      {availableModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="text-sm text-gruv-medium">
+                      {discoveryLoading
+                        ? 'Discovering models...'
+                        : 'No models found. Make sure Ollama is running and has models installed.'}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={discoverAvailableModels}
+                    className="text-xs text-gruv-blue-bright hover:text-gruv-blue underline"
+                  >
+                    🔄 Refresh models
+                  </button>
+
+                  {/* Show current selection */}
+                  {modelId && (
+                    <div className="text-xs text-gruv-medium">
+                      Selected:{' '}
+                      <span className="text-gruv-light">{modelId}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Text input for non-Ollama providers
+                <>
                   <input
                     type="text"
                     value={modelId}
                     onChange={(e) => setModelId(e.target.value)}
                     className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
-                    placeholder="e.g., llama3.2:7b"
+                    placeholder="e.g., gpt-4, claude-3-sonnet"
                   />
                   <div className="text-xs text-gruv-medium mt-1">
-                    For Ollama models, use format: model:tag (e.g., llama3.2:7b)
+                    Enter the model ID for your API provider
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
 
             {/* Temperature */}
             <div>
@@ -283,41 +515,41 @@ export function ModelSettingsModal({
               />
             </div>
 
-            {/* API Key for API models */}
-            {!isAddMode && model?.type === 'api' && (
-              <div>
-                <label className="block text-sm font-medium text-gruv-light mb-1">
-                  API Key
-                </label>
-                <input
-                  type="password"
-                  value={settings.apiKey || ''}
-                  onChange={(e) =>
-                    setSettings({ ...settings, apiKey: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
-                  placeholder="Enter your API key..."
-                />
+            {/* Endpoint - Always visible for unified UI */}
+            <div>
+              <label className="block text-sm font-medium text-gruv-light mb-1">
+                Endpoint
+              </label>
+              <input
+                type="url"
+                value={settings.endpoint || 'http://localhost:11434'}
+                onChange={(e) =>
+                  setSettings({ ...settings, endpoint: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
+                placeholder="http://localhost:11434"
+              />
+              <div className="text-xs text-gruv-medium mt-1">
+                For Ollama: http://localhost:11434 | For APIs: Use provider
+                endpoint
               </div>
-            )}
+            </div>
 
-            {/* Endpoint for local models */}
-            {(isAddMode || model?.type === 'local') && (
-              <div>
-                <label className="block text-sm font-medium text-gruv-light mb-1">
-                  Endpoint
-                </label>
-                <input
-                  type="url"
-                  value={settings.endpoint || 'http://localhost:11434'}
-                  onChange={(e) =>
-                    setSettings({ ...settings, endpoint: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
-                  placeholder="http://localhost:11434"
-                />
-              </div>
-            )}
+            {/* API Key - Always visible for unified UI */}
+            <div>
+              <label className="block text-sm font-medium text-gruv-light mb-1">
+                API Key (Optional)
+              </label>
+              <input
+                type="password"
+                value={settings.apiKey || ''}
+                onChange={(e) =>
+                  setSettings({ ...settings, apiKey: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-gruv-dark border border-gruv-medium rounded focus:outline-none focus:border-gruv-blue-bright text-gruv-light"
+                placeholder="Leave empty for Ollama, required for API providers"
+              />
+            </div>
           </div>
 
           {/* Footer */}
